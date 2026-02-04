@@ -188,7 +188,7 @@
 
 .comic-shadow:active {
   box-shadow: 2px 2px 0px 0px #000000;
-  transform: translate(2px, 2px);
+  transform: translate(0px, 0px);
 }
 
 .dark .comic-border {
@@ -201,8 +201,4 @@
 
 .dark .comic-shadow:hover {
   box-shadow: 6px 6px 0px 0px #FFFFFF;
-}
-
-.dark .comic-shadow:active {
-  box-shadow: 2px 2px 0px 0px #FFFFFF;
 }

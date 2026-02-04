@@ -1,7 +1,7 @@
 {
   "name": "smartlex",
   "private": true,
-  "version": "0.1.7",
+  "version": "0.1.8",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,6 @@
     "tauri": "tauri"
   },
   "dependencies": {
-    "@google/genai": "^1.38.0",
     "@tauri-apps/plugin-fs": "^2.4.5",
     "@tauri-apps/plugin-notification": "^2.3.3",
     "html2canvas": "^1.4.1",

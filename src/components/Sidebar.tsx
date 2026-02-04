@@ -6,11 +6,21 @@ interface SidebarProps {
   setView: (view: number) => void;
 }
 
+// Assuming View enum is defined elsewhere or these are direct numbers
+// For the purpose of this change, we'll use the numbers directly as in the original code's comment
+// If View enum is available, it should be imported and used.
+enum View {
+  HOME = 0,
+  HISTORY = 1,
+  LIBRARY = 2,
+  SETTINGS = 3,
+}
+
 const Sidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
   // Mapping based on View enum: HOME: 0, HISTORY: 1, LIBRARY: 2, SETTINGS: 3
-  const navItems = [
-    { id: 0, icon: 'home', label: '首页' },
-    { id: 2, icon: 'menu_book', label: '知识库' },
+  const menuItems = [
+    { id: View.HOME, icon: 'home', label: '首页' },
+    { id: View.LIBRARY, icon: 'menu_book', label: '知识库' },
   ];
 
   return (
@@ -26,7 +36,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
       </div>
 
       <nav className="flex flex-col gap-4 w-full px-4">
-        {navItems.map((item) => (
+        {menuItems.map((item) => (
           <button
             key={item.id}
             onClick={() => setView(item.id)}

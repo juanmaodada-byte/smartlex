@@ -21,7 +21,7 @@ export async function analyzeTerm(term: string, context: string = "", imageBase6
     "partOfSpeech": "pos",
     "context": "ctx",
     "type": "Word" | "Idiom" | "Metaphor" | "Slang" | "Term",
-    "tags": ["tag"],
+    "tags": ["Generate 1-2 BROAD SECTOR/FIELD tags ONLY (e.g., Business, Technology, Finance, Medicine, Law). ABSOLUTELY NO descriptive phrases or specific topics (e.g., 'AI Pitfall Analysis')."],
     "semanticCore": { "en": "def", "cn": "def", "contextualMeaning": { "en": "...", "cn": "..." } },
     "pragmatics": { "tone": "...", "register": "...", "nuance_cn": "..." },
     "originStory": "...",

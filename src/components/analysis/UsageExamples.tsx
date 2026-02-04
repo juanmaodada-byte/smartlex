@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { SemanticAnalysis } from '../../types';
 import { useToast } from '../../contexts/ToastContext';
-import { generateMoreExamples } from '../../geminiService';
+import { generateMoreExamples } from '../../aiService';
 
 interface UsageExamplesProps {
     analysis: SemanticAnalysis;

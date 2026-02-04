@@ -2,12 +2,12 @@
 # SmartLex - 高端语义分析引擎开发文档
 
 ## 1. 项目简介
-**SmartLex** 是一款基于 Google Gemini AI 的深度语义分析工具。它不仅仅是一个翻译器，而是一个“语义实验室”，旨在帮助高级英语学习者、学者和翻译人员拆解单词及短语背后的隐喻逻辑、文化语境和细微差别。
+**SmartLex** 是一款基于 **Doubao (Volcengine)** AI 的深度语义分析工具。它不仅仅是一个翻译器，而是一个“语义实验室”，旨在帮助高级英语学习者、学者和翻译人员拆解单词及短语背后的隐喻逻辑、文化语境和细微差别。
 
 ## 2. 技术栈
 - **核心框架**: React 19
 - **样式引擎**: Tailwind CSS
-- **AI SDK**: `@google/genai`
+- **AI 引擎**: **Doubao (Volcengine)** (via `aiService.ts`)
 - **持久化层**: `storageService.ts` (混合支持 LocalStorage + Tauri Native FS + Web File System Access API)
 - **桌面构建**: Tauri (方案 A)
 
@@ -53,7 +53,20 @@
 
 
 
-### v0.1.7 (Current)
+### v0.1.8 (Current)
+- **UX Unification (Neo-Brutalism/Comic Style)**:
+  - 全面统一了 Global Shell, Sidebar, AnalysisStation, Library 的视觉风格，采用高对比度边框和硬阴影。
+  - 移除了所有 Glassmorphism 效果，确保风格一致性。
+- **全面汉化 (Localization)**:
+  - 完成了 AnalysisStation, Sidebar, ChatSidebar, Library 的全量汉化。
+  - 实现了 Library 中分析类型 (Type) 的中文映射 (如 Metaphor -> 隐喻)。
+- **功能增强**:
+  - **Bilingual Fun Facts**: 加载界面新增中英双语的语言学冷知识轮播。
+  - **Tag 优化**: 调整 AI Prompt，强制生成 1-2 个精准的行业/领域标签 (Sector/Field)，杜绝描述性长句。
+- **体验优化**:
+  - 精简了 Sidebar 菜单，移除了冗余的 "History" 和重复的 "Settings"。
+
+### v0.1.7
 - **UI 布局终级修复**:
   - 修正了主容器的 CSS 层级，强制 `html`, `body`, `#root` 高度为 100% 且 `overflow: hidden`。
   - 应用主容器使用 `h-full` 配合 `min-h-0`，彻底解决 Flexbox 溢出问题。

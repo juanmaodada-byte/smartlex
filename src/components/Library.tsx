@@ -31,6 +31,16 @@ const KnowledgeLibrary: React.FC<KnowledgeLibraryProps> = ({
     return Array.from(tags).sort();
   }, [library]);
 
+  // Type mapping for localization
+  const TYPE_MAPPING: Record<string, string> = {
+    'All': '全部',
+    'Metaphor': '隐喻',
+    'Idiom': '习语',
+    'Word': '单词',
+    'Slang': '俚语',
+    'Term': '术语'
+  };
+
   const filteredItems = library.filter(item => {
     const matchesSearch = item.term.toLowerCase().includes(search.toLowerCase()) ||
       item.semanticCore.en.toLowerCase().includes(search.toLowerCase());
@@ -193,7 +203,7 @@ const KnowledgeLibrary: React.FC<KnowledgeLibraryProps> = ({
                   className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase whitespace-nowrap transition-all border-3 border-black ${filter === t ? 'bg-blue-500 text-white shadow-[4px_4px_0px_0px_#000] -translate-y-0.5' : 'bg-white text-black hover:bg-gray-100 hover:shadow-[2px_2px_0px_0px_#000]'
                     }`}
                 >
-                  {t === 'All' ? '全部' : t.toUpperCase()}
+                  {TYPE_MAPPING[t] || t}
                 </button>
               ))}
             </div>
@@ -217,7 +227,7 @@ const KnowledgeLibrary: React.FC<KnowledgeLibraryProps> = ({
                   onClick={() => setSelectedTag(tag === selectedTag ? null : tag)}
                   className={`px-2 py-1 rounded-md text-[9px] font-bold transition-all flex items-center gap-1 border-2 border-black ${tag === selectedTag
                     ? 'bg-blue-500 text-white shadow-[2px_2px_0px_0px_#000]'
-                    : 'bg-white text-black hover:bg-blue-100'
+                    : 'bg-white text-black hover:bg-yellow-200 shadow-[1px_1px_0px_0px_#000]'
                     }`}
                 >
                   #{tag}
@@ -226,7 +236,7 @@ const KnowledgeLibrary: React.FC<KnowledgeLibraryProps> = ({
             </div>
           )}
         </div>
-      </header>
+      </header >
 
       <div className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-8 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]" id="library-content">
         {filteredItems.length === 0 ? (
@@ -248,7 +258,7 @@ const KnowledgeLibrary: React.FC<KnowledgeLibraryProps> = ({
                   onClick={() => onSelectItem(item)}
                 >
                   <div className="flex justify-between items-start mb-4">
-                    <span className="px-2 py-1 bg-yellow-300 text-black border-2 border-black text-[9px] font-black uppercase rounded shadow-[2px_2px_0px_0px_#000]">{item.type}</span>
+                    <span className="px-2 py-1 bg-yellow-300 text-black border-2 border-black text-[9px] font-black uppercase rounded shadow-[2px_2px_0px_0px_#000]">{TYPE_MAPPING[item.type] || item.type}</span>
                     <div className="flex items-center gap-1">
                       <button
                         onClick={(e) => {
@@ -293,7 +303,7 @@ const KnowledgeLibrary: React.FC<KnowledgeLibraryProps> = ({
 
                 {/* Tag Management Overlay */}
                 {isManagingTags === item.id && (
-                  <div className="absolute inset-x-0 bottom-0 bg-white/98 dark:bg-gray-900/98 backdrop-blur-md p-5 rounded-b-[1.5rem] border-t border-gray-100 dark:border-gray-800 shadow-2xl z-10 animate-in slide-in-from-bottom-2 duration-200">
+                  <div className="absolute inset-x-0 bottom-0 bg-white dark:bg-gray-900 p-5 rounded-b-xl border-t-3 border-black dark:border-white z-10 animate-in slide-in-from-bottom-2 duration-200">
                     <div className="flex justify-between items-center mb-4">
                       <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest flex items-center gap-1">
                         <span className="material-symbols-outlined text-sm">edit_note</span> 管理标签
@@ -316,11 +326,11 @@ const KnowledgeLibrary: React.FC<KnowledgeLibraryProps> = ({
                         onChange={(e) => setNewTagInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleAddTag(item)}
                         placeholder="添加新标签..."
-                        className="flex-1 bg-gray-50 dark:bg-gray-800 border-none rounded-xl text-xs py-2 px-4 focus:ring-1 focus:ring-primary/30 shadow-inner"
+                        className="flex-1 bg-white dark:bg-gray-800 border-2 border-black rounded-lg text-xs py-2 px-4 focus:shadow-[4px_4px_0px_0px_#000] focus:-translate-y-0.5 transition-all outline-none"
                       />
                       <button
                         onClick={() => handleAddTag(item)}
-                        className="bg-primary text-white size-9 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 transition-all"
+                        className="bg-black text-white size-9 rounded-lg border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_#ccc] hover:shadow-[4px_4px_0px_0px_#ccc] hover:-translate-y-0.5 transition-all"
                       >
                         <span className="material-symbols-outlined text-sm">add</span>
                       </button>
@@ -332,7 +342,7 @@ const KnowledgeLibrary: React.FC<KnowledgeLibraryProps> = ({
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 };
 

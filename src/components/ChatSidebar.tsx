@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { SemanticAnalysis, ChatMessage } from '../types';
-import { chatWithAI } from '../geminiService';
+import { chatWithAI } from '../aiService';
 
 import { useStore } from '../contexts/StoreContext';
 
@@ -54,11 +54,11 @@ const ChatSidebar: React.FC = () => {
             <span className="material-symbols-outlined text-2xl font-black">smart_toy</span>
           </div>
           <div>
-            <h2 className="font-display font-black text-lg tracking-tighter text-black uppercase italic transform -rotate-2">AI ASSISTANT</h2>
+            <h2 className="font-display font-black text-lg tracking-tighter text-black uppercase italic transform -rotate-2">AI 助手</h2>
             <div className="flex items-center gap-1.5 ml-1">
               <span className={`size-2 border border-black rounded-full ${isTyping ? 'bg-white animate-bounce' : 'bg-green-500'}`}></span>
               <span className="text-[10px] text-black uppercase font-black tracking-widest bg-white px-1 border border-black rounded shadow-[1px_1px_0px_0px_#000]">
-                {isTyping ? 'THINKING...' : 'READY'}
+                {isTyping ? '思考中...' : '就绪'}
               </span>
             </div>
           </div>
@@ -67,7 +67,7 @@ const ChatSidebar: React.FC = () => {
           <button
             onClick={() => setMessages([])}
             className="size-9 flex items-center justify-center text-black bg-white hover:bg-red-400 hover:text-white border-2 border-black rounded-lg transition-all shadow-[2px_2px_0px_0px_#000] active:translate-y-0.5 active:shadow-none"
-            title="New Chat"
+            title="新对话"
           >
             <span className="material-symbols-outlined text-lg font-bold">add_comment</span>
           </button>
@@ -80,22 +80,22 @@ const ChatSidebar: React.FC = () => {
             <div className="bg-white text-black p-6 rounded-2xl rounded-tl-none text-sm leading-relaxed border-3 border-black shadow-[6px_6px_0px_0px_#000]">
               <p className="mb-4 font-black text-xl italic flex items-center gap-2 transform -rotate-1">
                 <span className="material-symbols-outlined text-2xl">waving_hand</span>
-                HEY THERE!
+                你好!
               </p>
-              <p className="mb-4 font-bold border-l-4 border-blue-500 pl-2">Ready to crack some linguistic codes?</p>
+              <p className="mb-4 font-bold border-l-4 border-blue-500 pl-2">准备好破解语言密码了吗？</p>
               <ul className="space-y-3">
                 <li className="flex gap-3 items-center">
                   <span className="size-6 bg-black text-white rounded-full flex items-center justify-center font-black text-xs">1</span>
-                  <span className="font-bold text-xs uppercase">Decoding Metaphors</span>
+                  <span className="font-bold text-xs uppercase">解码隐喻</span>
                 </li>
                 <li className="flex gap-3 items-center">
                   <span className="size-6 bg-black text-white rounded-full flex items-center justify-center font-black text-xs">2</span>
-                  <span className="font-bold text-xs uppercase">Slang & Idioms</span>
+                  <span className="font-bold text-xs uppercase">习语与俚语</span>
                 </li>
               </ul>
               {currentAnalysis && (
                 <div className="mt-6 p-3 bg-yellow-300 rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_#000] rotate-1">
-                  <p className="text-[9px] text-black mb-1 font-black uppercase tracking-widest border-b-2 border-black pb-1">Current Focus:</p>
+                  <p className="text-[9px] text-black mb-1 font-black uppercase tracking-widest border-b-2 border-black pb-1">当前焦点:</p>
                   <p className="text-sm font-black italic">"{currentAnalysis.term}"</p>
                 </div>
               )}
@@ -137,7 +137,7 @@ const ChatSidebar: React.FC = () => {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
             className="flex-1 w-full bg-transparent border-none focus:ring-0 text-sm font-bold min-h-[48px] max-h-48 py-3 px-2 resize-none placeholder-gray-400 no-scrollbar leading-relaxed outline-none"
-            placeholder="Ask anything..."
+            placeholder="问点什么..."
           />
           <button
             onClick={handleSend}
