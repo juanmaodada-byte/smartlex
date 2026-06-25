@@ -7,6 +7,8 @@ interface ResultHeaderProps {
     onUpdate: (updated: SemanticAnalysis) => void;
 }
 
+const cleanString = (str: string) => str.replace(/[*_~`]/g, '');
+
 const ResultHeader: React.FC<ResultHeaderProps> = ({ analysis, onUpdate }) => {
     const { showToast } = useToast();
     const [newTag, setNewTag] = useState('');
@@ -32,51 +34,60 @@ const ResultHeader: React.FC<ResultHeaderProps> = ({ analysis, onUpdate }) => {
     };
 
     return (
-        <section className="relative">
-            <div className="flex flex-col gap-6">
-                <div className="flex flex-wrap items-center gap-2">
-                    <span className="bg-red-500 text-white border-2 border-black px-3 py-1 text-[10px] font-black uppercase tracking-widest shadow-[2px_2px_0px_0px_#000] -rotate-1">{analysis.type}</span>
-                    <span className="bg-blue-400 text-white border-2 border-black px-3 py-1 text-[10px] font-black uppercase italic shadow-[2px_2px_0px_0px_#000] rotate-1">{analysis.partOfSpeech}</span>
-                </div>
+        <section className="space-y-6 animate-fade-in">
+            {/* 类型标签 */}
+            <div className="flex flex-wrap items-center gap-2">
+                <span className="badge-accent">{analysis.type}</span>
+                <span className="badge inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-accent-200 dark:bg-accent-900/40 text-accent-700 dark:text-accent-300">
+                    {analysis.partOfSpeech}
+                </span>
+            </div>
 
-                <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
-                    <h1 className="text-6xl lg:text-8xl font-display font-black tracking-tighter text-black dark:text-white break-words drop-shadow-[4px_4px_0_#3B82F6] stroke-black text-stroke-2">
-                        {analysis.term.toUpperCase()}
-                    </h1>
-                    {analysis.rootForm && analysis.rootForm.toLowerCase() !== analysis.term.toLowerCase() && (
-                        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-yellow-300 border-2 border-black text-black shadow-[2px_2px_0px_0px_#000]">
-                            <span className="material-symbols-outlined text-lg">conversion_path</span>
-                            <span className="text-xs font-black uppercase tracking-widest">Root: <span className="underline decoration-4 underline-offset-4">{analysis.rootForm}</span></span>
-                        </div>
-                    )}
-                </div>
-
-                {/* Tags Management Section */}
-                <div className="flex flex-wrap items-center gap-2 pt-4 border-t-2 border-black border-dashed print:hidden">
-                    <span className="text-[10px] font-black text-black uppercase tracking-widest flex items-center gap-1.5 mr-2 bg-white border border-black px-2 py-1 shadow-[2px_2px_0px_0px_#ccc]">
-                        <span className="material-symbols-outlined text-sm">sell</span> Tags
-                    </span>
-                    {analysis.tags.map((tag, i) => (
-                        <span key={i} className="flex items-center gap-1.5 px-3 py-1 bg-yellow-100 text-black border border-black text-[10px] font-bold group hover:bg-yellow-200 transition-colors shadow-[2px_2px_0px_0px_#000]">
-                            #{tag}
-                            <button onClick={() => handleRemoveTag(tag)} className="opacity-40 group-hover:opacity-100 material-symbols-outlined text-[12px] hover:text-red-600 transition-all font-bold">cancel</button>
+            {/* 术语主标题 */}
+            <div className="flex flex-wrap items-baseline gap-x-5 gap-y-2">
+                <h1 className="text-5xl lg:text-7xl font-bold text-warm-800 dark:text-warm-100 tracking-tight break-words">
+                    {analysis.term.toUpperCase()}
+                </h1>
+                {analysis.rootForm && analysis.rootForm.toLowerCase() !== analysis.term.toLowerCase() && (
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent-50 dark:bg-accent-900/30 text-accent-700 dark:text-accent-400 border border-accent-200 dark:border-accent-900/40">
+                        <span className="material-symbols-outlined text-base">conversion_path</span>
+                        <span className="text-xs font-semibold">
+                            词根: <span className="underline decoration-2 underline-offset-4 decoration-accent-300">{analysis.rootForm}</span>
                         </span>
-                    ))}
-                    <form onSubmit={handleAddTag} className="flex items-center gap-2">
-                        <input
-                            value={newTag}
-                            onChange={(e) => setNewTag(e.target.value)}
-                            placeholder="NEW TAG..."
-                            className="w-28 bg-white border-2 border-black text-[10px] py-1.5 px-3 font-bold uppercase shadow-[2px_2px_0px_0px_#ccc] focus:shadow-[4px_4px_0px_0px_#000] focus:-translate-y-0.5 transition-all outline-none"
-                        />
-                        <button type="submit" className="material-symbols-outlined text-black hover:text-blue-600 text-xl font-bold bg-white border-2 border-black p-0.5 shadow-[2px_2px_0px_0px_#000] hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_#000] transition-all">add</button>
-                    </form>
-                </div>
+                    </div>
+                )}
+            </div>
 
-                <div className="p-6 bg-white dark:bg-gray-800 border-3 border-black shadow-[6px_6px_0px_0px_#000] relative mt-2">
-                    <div className="absolute -top-3 left-6 bg-white border-x-3 border-t-3 border-black px-2 py-0 text-[10px] font-black uppercase tracking-widest">Context Info</div>
-                    <p className="text-base italic text-black dark:text-gray-200 leading-relaxed font-bold font-display">"{analysis.context}"</p>
-                </div>
+            {/* 标签管理 */}
+            <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-warm-200/60 dark:border-warm-800/60 print:hidden">
+                <span className="flex items-center gap-1.5 text-[10px] font-semibold text-warm-500 dark:text-warm-400 uppercase tracking-wide">
+                    <span className="material-symbols-outlined text-sm">sell</span> 标签
+                </span>
+                {analysis.tags.map((tag, i) => (
+                    <span key={i} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent-100 dark:bg-accent-900/20 text-accent-700 dark:text-accent-300 text-[10px] font-semibold group">
+                        #{tag}
+                        <button onClick={() => handleRemoveTag(tag)} className="material-symbols-outlined text-[12px] opacity-50 group-hover:opacity-100 hover:text-error-500 transition-all">cancel</button>
+                    </span>
+                ))}
+                <form onSubmit={handleAddTag} className="flex items-center gap-1.5">
+                    <input
+                        value={newTag}
+                        onChange={(e) => setNewTag(e.target.value)}
+                        placeholder="添加标签..."
+                        className="w-28 bg-bg-surface border border-warm-200 dark:border-warm-700 rounded-full text-[10px] py-1.5 px-3 font-medium focus:outline-none focus:border-accent-400 focus:shadow-glow transition-all"
+                    />
+                    <button type="submit" className="size-6 rounded-full bg-accent-100 dark:bg-accent-900/20 text-accent-600 dark:text-accent-400 flex items-center justify-center hover:bg-accent-200 dark:hover:bg-accent-900/40 transition-colors">
+                        <span className="material-symbols-outlined text-sm font-bold">add</span>
+                    </button>
+                </form>
+            </div>
+
+            {/* 语境信息 */}
+            <div className="p-5 rounded-xl bg-accent-50/50 dark:bg-accent-900/10 border border-accent-100 dark:border-accent-900/20">
+                <p className="text-[10px] font-semibold text-accent-500 dark:text-accent-400 uppercase tracking-wide mb-2">原始语境</p>
+                <p className="text-sm text-warm-700 dark:text-warm-300 leading-relaxed font-medium italic">
+                    "{cleanString(analysis.context)}"
+                </p>
             </div>
         </section>
     );

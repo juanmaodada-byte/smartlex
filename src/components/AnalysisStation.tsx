@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 
 const FUN_FACTS = [
@@ -39,9 +38,7 @@ const AnalysisStation: React.FC<AnalysisStationProps> = ({ onAnalyze, onOpenHist
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setImage(reader.result as string);
-      };
+      reader.onloadend = () => setImage(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
@@ -51,115 +48,161 @@ const AnalysisStation: React.FC<AnalysisStationProps> = ({ onAnalyze, onOpenHist
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const canSubmit = term.trim() && (context.trim() || image);
+
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-gray-900 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
-      <header className="h-16 flex items-center justify-between px-8 border-b-4 border-black shrink-0 sm:flex hidden bg-white dark:bg-gray-900 z-10">
-        <h1 className="text-lg font-black uppercase tracking-widest text-black dark:text-white italic -rotate-1 bg-yellow-400 px-2 border-2 border-black inline-block shadow-[2px_2px_0px_0px_#000]">分析工作台</h1>
+    <div className="flex-1 flex flex-col overflow-hidden bg-bg-app dark:bg-warm-950">
+      {/* ─── 页面 Header ─── */}
+      <div className="flex items-center justify-between px-6 lg:px-10 h-14 border-b border-warm-200/60 dark:border-warm-800/60 shrink-0 bg-bg-surface/50 dark:bg-warm-900/30 backdrop-blur-sm">
+        <h1 className="text-sm font-bold text-warm-600 dark:text-warm-400 tracking-wide">分析工作台</h1>
         <button
           onClick={onOpenHistory}
-          className="flex items-center gap-2 text-black hover:text-white hover:bg-black transition-all font-bold uppercase tracking-widest px-3 py-1 rounded border-2 border-transparent hover:border-black"
+          className="flex items-center gap-1.5 text-xs font-medium text-warm-500 dark:text-warm-400 hover:text-warm-800 dark:hover:text-warm-200 transition-colors px-2.5 py-1.5 rounded-lg hover:bg-warm-100 dark:hover:bg-warm-800/50"
         >
-          <span className="material-symbols-outlined text-xl">history</span>
+          <span className="material-symbols-outlined text-base">history</span>
           <span className="hidden sm:inline">历史记录</span>
         </button>
-      </header>
+      </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-4 lg:p-8 flex flex-col items-center">
-        <div className="max-w-4xl w-full flex flex-col items-center justify-center flex-1 py-6 pb-32">
-          <div className="text-center mb-8 lg:mb-12 space-y-2 lg:space-y-3 relative">
-            <div className="absolute -top-10 right-0 lg:-right-20 rotate-12 bg-white border-3 border-black p-2 shadow-[4px_4px_0px_0px_#000] hidden lg:block animate-bounce duration-[3000ms]">
-              <p className="font-black text-xs uppercase">Unlock Knowledge!</p>
+      {/* ─── 主内容区 ─── */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
+        <div className="max-w-2xl mx-auto flex flex-col items-center justify-center min-h-full py-10 px-6">
+
+          {/* 标题 */}
+          <div className="text-center mb-10 space-y-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-100 dark:bg-accent-900/30 text-accent-700 dark:text-accent-400 text-xs font-semibold tracking-wide">
+              <span className="material-symbols-outlined text-sm">psychology</span>
+              深度语义分析引擎
             </div>
-            <h2 className="text-4xl lg:text-7xl font-display font-black text-black dark:text-white tracking-tighter italic drop-shadow-[4px_4px_0_#FCD34D] stroke-black text-stroke-2">
-              深度语义分析
+            <h2 className="text-3xl lg:text-4xl font-bold text-warm-800 dark:text-warm-100 tracking-tight">
+              探索语言的深层含义
             </h2>
+            <p className="text-sm text-warm-500 dark:text-warm-400 max-w-md mx-auto">
+              输入任意词汇或短语，获取其语义核心、语用分析、搭配用法和起源故事
+            </p>
           </div>
 
-          <div className="w-full relative group">
-            {isAnalyzing ? (
-              <div className="relative bg-white dark:bg-gray-900 border-3 border-black rounded-2xl p-6 lg:p-10 flex flex-col items-center justify-center gap-6 min-h-[400px] animate-in fade-in zoom-in-95 duration-300 shadow-[8px_8px_0px_0px_#000]">
-                {/* Comic Loader Animation */}
-                <div className="relative">
-                  <div className="size-24 border-4 border-black bg-yellow-400 rounded-full animate-bounce flex items-center justify-center shadow-[4px_4px_0px_0px_#000]">
-                    <span className="material-symbols-outlined text-5xl animate-spin">settings</span>
+          {/* 分析表单卡片 */}
+          {!isAnalyzing ? (
+            <div className="w-full animate-scale-in">
+              <div className="card p-6 lg:p-8 space-y-6 shadow-lg border-warm-200/40 dark:border-warm-800/40">
+                {/* 术语输入 */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-xs font-semibold text-warm-500 dark:text-warm-400 uppercase tracking-wide">
+                    <span className="material-symbols-outlined text-sm">target</span>
+                    目标术语
+                  </label>
+                  <input
+                    value={term}
+                    onChange={(e) => setTerm(e.target.value)}
+                    className="input-lg text-lg font-medium"
+                    placeholder='输入要分析的词或短语，如 "Silver Lining"...'
+                    type="text"
+                    autoFocus
+                  />
+                </div>
+
+                {/* 语境输入 */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-xs font-semibold text-warm-500 dark:text-warm-400 uppercase tracking-wide">
+                    <span className="material-symbols-outlined text-sm">contextual_token</span>
+                    原始语境 <span className="font-normal text-warm-400">（可选，帮助 AI 理解上下文）</span>
+                  </label>
+                  <textarea
+                    value={context}
+                    onChange={(e) => setContext(e.target.value)}
+                    className="input-lg resize-none min-h-[100px]"
+                    placeholder="请输入包含该术语的原始句子或段落..."
+                  />
+                </div>
+
+                {/* 图片上传 */}
+                {image && (
+                  <div className="relative inline-block animate-scale-in">
+                    <div className="rounded-lg overflow-hidden border border-warm-200 dark:border-warm-700 shadow-sm w-28">
+                      <img src={image} alt="视觉语境" className="w-full h-20 object-cover" />
+                    </div>
+                    <button
+                      onClick={removeImage}
+                      className="absolute -top-2 -right-2 size-6 rounded-full bg-error-500 text-white flex items-center justify-center shadow-md hover:bg-error-600 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-xs font-bold">close</span>
+                    </button>
                   </div>
-                  <div className="absolute -right-4 -top-4 bg-white border-2 border-black px-2 py-1 rotate-12 shadow-[2px_2px_0px_0px_#000]">
-                    <span className="text-xs font-black uppercase">运算中...</span>
+                )}
+
+                {/* 操作区 */}
+                <div className="flex items-center justify-between pt-2">
+                  <label className="flex items-center gap-2 text-xs font-medium text-warm-400 hover:text-warm-600 dark:hover:text-warm-300 cursor-pointer transition-colors px-3 py-2 rounded-lg hover:bg-warm-50 dark:hover:bg-warm-800/50">
+                    <span className="material-symbols-outlined text-base">add_photo_alternate</span>
+                    添加图片
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageUpload}
+                    />
+                  </label>
+
+                  <button
+                    onClick={() => term && (context || image) && onAnalyze(term, context)}
+                    disabled={!canSubmit}
+                    className="btn-primary px-8 py-3 text-sm font-semibold rounded-xl shadow-lg shadow-accent-500/20 hover:shadow-xl hover:shadow-accent-500/25 gap-2"
+                  >
+                    <span className="material-symbols-outlined text-lg">bolt</span>
+                    开始分析
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* 加载状态 */
+            <div className="w-full animate-scale-in">
+              <div className="card p-10 flex flex-col items-center gap-8 shadow-lg border-warm-200/40 dark:border-warm-800/40">
+                {/* 加载动画 */}
+                <div className="relative">
+                  <div className="size-20 rounded-2xl bg-accent-500 flex items-center justify-center shadow-lg shadow-accent-500/25 animate-pulse">
+                    <span className="material-symbols-outlined text-4xl text-white animate-spin" style={{ animationDuration: '3s' }}>progress_activity</span>
+                  </div>
+                  <div className="absolute -bottom-2 -right-2 size-8 rounded-full bg-success-500 flex items-center justify-center shadow-md animate-bounce" style={{ animationDelay: '0.3s' }}>
+                    <span className="material-symbols-outlined text-white text-sm">psychology</span>
                   </div>
                 </div>
 
-                {/* Fun Fact / Quote */}
-                <div className="text-center max-w-md space-y-4">
-                  <h3 className="text-2xl font-black italic uppercase transform -rotate-1">Did you know? <span className="text-base not-italic text-gray-500">你知道吗？</span></h3>
-                  <div className="bg-blue-50 border-3 border-black p-4 rounded-xl shadow-[4px_4px_0px_0px_#000] relative min-h-[120px] flex flex-col items-center justify-center gap-2">
-                    <span className="absolute -top-3 -left-2 text-4xl transform -rotate-12">💡</span>
-                    <p className="font-bold text-lg font-display animate-fade-in transition-all duration-500">
+                {/* 状态文字 */}
+                <div className="text-center space-y-2">
+                  <h3 className="text-lg font-bold text-warm-800 dark:text-warm-200">
+                    正在分析语义结构...
+                  </h3>
+                  <p className="text-sm text-warm-400">
+                    调用 AI 模型进行深度语义解析，通常需要 3-10 秒
+                  </p>
+                </div>
+
+                {/* 进度条动画 */}
+                <div className="w-48 h-1.5 rounded-full bg-warm-100 dark:bg-warm-800 overflow-hidden">
+                  <div className="h-full rounded-full bg-accent-500 animate-pulse" style={{ width: '70%' }} />
+                </div>
+
+                {/* 趣闻卡片 */}
+                <div className="w-full max-w-sm bg-accent-50/50 dark:bg-accent-900/10 rounded-xl p-5 border border-accent-100 dark:border-accent-900/20">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-base">💡</span>
+                    <span className="text-xs font-semibold text-accent-600 dark:text-accent-400 uppercase tracking-wide">你知道吗？</span>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-warm-700 dark:text-warm-300 animate-fade-in" key={funFactIndex}>
                       "{FUN_FACTS[funFactIndex].en}"
                     </p>
-                    <p className="font-bold text-base text-gray-600 font-display animate-fade-in transition-all duration-500 border-t-2 border-black/10 pt-2 w-full">
+                    <p className="text-xs text-warm-500 dark:text-warm-400 animate-fade-in">
                       "{FUN_FACTS[funFactIndex].cn}"
                     </p>
                   </div>
-                  <p className="text-xs font-mono text-gray-400 uppercase tracking-widest mt-4">
-                    正在分析语义结构...
-                  </p>
                 </div>
               </div>
-            ) : (
-              <>
-                <div className="absolute inset-0 bg-yellow-400 rounded-2xl transform rotate-1 translate-x-2 translate-y-2 border-3 border-black"></div>
-                <div className="relative bg-white dark:bg-gray-900 border-3 border-black rounded-2xl p-6 lg:p-10 flex flex-col gap-6 lg:gap-8 hover:-translate-y-1 hover:-translate-x-1 transition-transform duration-300">
-                  <div className="space-y-2 group/input">
-                    <label className="text-xs font-black uppercase tracking-widest text-white bg-black px-2 py-1 -rotate-1 inline-block shadow-[2px_2px_0px_0px_#000] flex w-fit items-center gap-1.5 border-2 border-transparent">
-                      <span className="material-symbols-outlined text-sm">target</span> 目标术语
-                    </label>
-                    <input
-                      value={term}
-                      onChange={(e) => setTerm(e.target.value)}
-                      className="w-full bg-white dark:bg-gray-800 border-3 border-black rounded-xl px-4 py-4 focus:ring-0 focus:shadow-[6px_6px_0px_0px_#000] focus:-translate-y-1 transition-all text-xl lg:text-2xl font-bold placeholder-gray-300 dark:placeholder-gray-600 font-display"
-                      placeholder="例如：Silver Lining..."
-                      type="text"
-                    />
-                  </div>
-
-                  <div className="space-y-2 group/input">
-                    <label className="text-xs font-black uppercase tracking-widest text-white bg-blue-600 px-2 py-1 rotate-1 inline-block shadow-[2px_2px_0px_0px_#000] flex w-fit items-center gap-1.5 border-2 border-black">
-                      <span className="material-symbols-outlined text-sm">contextual_token</span> 原始语境
-                    </label>
-                    <textarea
-                      value={context}
-                      onChange={(e) => setContext(e.target.value)}
-                      className="w-full bg-white dark:bg-gray-800 border-3 border-black rounded-xl px-4 py-4 focus:ring-0 focus:shadow-[6px_6px_0px_0px_#000] focus:-translate-y-1 transition-all text-base lg:text-lg font-medium placeholder-gray-300 dark:placeholder-gray-600 resize-none min-h-[100px] lg:min-h-[140px] custom-scrollbar"
-                      placeholder="请输入语境..."
-                    ></textarea>
-                  </div>
-
-                  {image && (
-                    <div className="relative inline-block w-24 lg:w-32 group/img animate-in zoom-in-50 duration-200 border-3 border-black shadow-[4px_4px_0px_0px_#000] rotate-2 bg-white p-1">
-                      <img src={image} alt="视觉语境" className="w-full h-16 lg:h-24 object-cover" />
-                      <button
-                        onClick={removeImage}
-                        className="absolute -top-3 -right-3 size-6 bg-red-500 text-white border-2 border-black flex items-center justify-center hover:scale-110 transition-transform shadow-[2px_2px_0px_0px_#000]"
-                      >
-                        <span className="material-symbols-outlined text-sm font-bold">close</span>
-                      </button>
-                    </div>
-                  )}
-
-                  <div className="flex flex-col sm:flex-row items-center justify-end pt-4 gap-4">
-                    <button
-                      onClick={() => term && context && onAnalyze(term, context)}
-                      disabled={!term || !context || isAnalyzing}
-                      className={`group relative overflow-hidden bg-red-500 text-white px-8 lg:px-12 py-4 lg:py-5 rounded-xl font-black text-xl uppercase tracking-wider flex items-center justify-center gap-3 border-3 border-black shadow-[6px_6px_0px_0px_#000] transition-all w-full sm:w-auto ${(!term || (!context && !image) || isAnalyzing) ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:scale-[1.02] hover:shadow-[8px_8px_0px_0px_#000] active:translate-x-1 active:translate-y-1 active:shadow-[2px_2px_0px_0px_#000]'}`}
-                    >
-                      <span className="material-symbols-outlined text-2xl lg:text-3xl group-hover:scale-125 transition-transform">bolt</span>
-                      <span>开始分析!</span>
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

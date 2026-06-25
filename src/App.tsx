@@ -6,10 +6,10 @@ import KnowledgeLibrary from './components/Library';
 import HistoryList from './components/History';
 import ChatSidebar from './components/ChatSidebar';
 import Settings from './components/Settings';
-import { analyzeTerm } from './aiService';
-import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification';
+import { analyzeTerm, getActiveProviderName } from './aiService';
 import { useToast } from './contexts/ToastContext';
 import { useStore } from './contexts/StoreContext';
+import { getActiveProvider, hasActiveApiKey } from './services/apiConfig';
 
 export enum View {
   HOME,
@@ -35,38 +35,92 @@ const App: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isCompactMode, setIsCompactMode] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
+  const [activeProviderName, setActiveProviderName] = useState(getActiveProviderName());
+  const [hasKey, setHasKey] = useState(hasActiveApiKey());
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const [breadcrumbInfo, setBreadcrumbInfo] = useState({ label: '历史记录', view: View.HISTORY });
 
   // Initial setup
   useEffect(() => {
     const initNotification = async () => {
-      let permissionGranted = await isPermissionGranted();
-      if (!permissionGranted) {
-        const permission = await requestPermission();
-        permissionGranted = permission === 'granted';
+      try {
+        if (window.__TAURI__) {
+          const { isPermissionGranted, requestPermission } = await import('@tauri-apps/plugin-notification');
+          let permissionGranted = await isPermissionGranted();
+          if (!permissionGranted) {
+            const permission = await requestPermission();
+            permissionGranted = permission === 'granted';
+          }
+        }
+      } catch (error) {
+        console.log('Notification not available in browser environment');
       }
     };
     initNotification();
 
-    if (window.innerWidth < 1024) setIsCompactMode(true);
+    if (window.innerWidth < 1024) {
+      setIsCompactMode(true);
+      setSidebarCollapsed(true);
+    }
   }, []);
 
+  // 监听 provider / key 变化
+  useEffect(() => {
+    const refresh = () => {
+      setActiveProviderName(getActiveProviderName());
+      setHasKey(hasActiveApiKey());
+    };
+    window.addEventListener('smartlex:provider-changed', refresh);
+    window.addEventListener('smartlex:api-key-changed', refresh);
+    window.addEventListener('storage', refresh);
+    return () => {
+      window.removeEventListener('smartlex:provider-changed', refresh);
+      window.removeEventListener('smartlex:api-key-changed', refresh);
+      window.removeEventListener('storage', refresh);
+    };
+  }, []);
+
+  // 首次进入若未配置 API Key，引导去设置页
+  useEffect(() => {
+    if (!hasKey) {
+      setCurrentView(View.SETTINGS);
+      showToast('请先在设置中配置当前模型的 API Key', 'info');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const ensureKeyOrRedirect = useCallback((): boolean => {
+    if (hasActiveApiKey()) return true;
+    showToast('请先在设置中配置 API Key', 'error');
+    setCurrentView(View.SETTINGS);
+    return false;
+  }, [showToast]);
+
   const handleStartAnalysis = useCallback(async (term: string, context: string, imageBase64?: string) => {
+    if (!hasActiveApiKey()) {
+      ensureKeyOrRedirect();
+      return;
+    }
     setIsAnalyzing(true);
     try {
       const result = await analyzeTerm(term, context, imageBase64);
       setHistory(prev => [result, ...prev].slice(0, 100));
       setCurrentAnalysis(result);
-      // Set breadcrumb to Home since we analyzed from Home
       setBreadcrumbInfo({ label: '首页', view: View.HOME });
       setCurrentView(View.ANALYSIS_RESULT);
 
-      // Send notification
-      sendNotification({
-        title: '分析完成',
-        body: `"${term}" 的深度分析已就绪。`,
-      });
+      try {
+        if (window.__TAURI__) {
+          const { sendNotification } = await import('@tauri-apps/plugin-notification');
+          sendNotification({
+            title: '分析完成',
+            body: `"${term}" 的深度分析已就绪。`,
+          });
+        }
+      } catch {
+        // 浏览器环境无通知能力，忽略
+      }
       showToast('深度分析已完成', 'success');
     } catch (error: any) {
       console.error("Analysis failed:", error);
@@ -74,16 +128,13 @@ const App: React.FC = () => {
     } finally {
       setIsAnalyzing(false);
     }
-  }, [showToast, setHistory, setCurrentAnalysis]);
+  }, [ensureKeyOrRedirect, showToast, setHistory, setCurrentAnalysis]);
 
   const navigateToAnalysis = useCallback((item: any, source: View) => {
     setCurrentAnalysis(item);
-
-    // Determine breadcrumb based on source
     let label = '历史记录';
     if (source === View.HOME) label = '首页';
     else if (source === View.LIBRARY) label = '知识库';
-
     setBreadcrumbInfo({ label, view: source });
     setCurrentView(View.ANALYSIS_RESULT);
   }, [setCurrentAnalysis]);
@@ -94,50 +145,90 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className={`flex h-full w-full transition-all duration-300 overflow-hidden bg-background-light dark:bg-background-dark ${isCompactMode ? 'bg-white dark:bg-black' : ''}`}>
-      {!isCompactMode && <Sidebar currentView={currentView} setView={setCurrentView} />}
+    <div className="flex h-full w-full overflow-hidden bg-bg-app dark:bg-warm-950 transition-colors duration-300">
 
-      <main className={`flex-1 flex flex-col min-h-0 overflow-hidden relative border-x-3 border-black dark:border-white ${isCompactMode ? 'border-none' : ''}`}>
+      {/* ═══ 左侧导航栏 ═══ */}
+      {!isCompactMode && (
+        <Sidebar
+          currentView={currentView}
+          setView={setCurrentView}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
+      )}
 
-        {/* Custom Header with Sync Status */}
-        <div className="h-12 flex items-center justify-between px-4 bg-yellow-300 shrink-0 border-b-3 border-black z-50">
-          <div className="flex items-center gap-4">
-            <div
-              className="flex items-center gap-2 cursor-pointer hover:-translate-y-0.5 transition-transform"
+      {/* ═══ 主内容区 ═══ */}
+      <main className="flex-1 flex flex-col min-h-0 overflow-hidden relative bg-bg-app dark:bg-warm-950">
+
+        {/* ─── 顶部状态栏 ─── */}
+        <header className="h-12 flex items-center justify-between px-5 bg-bg-surface/80 dark:bg-warm-900/80 backdrop-blur-xl border-b border-warm-200/60 dark:border-warm-800/60 shrink-0 z-40">
+          <div className="flex items-center gap-3">
+            {/* Logo 徽标 */}
+            <button
               onClick={() => setCurrentView(View.HOME)}
+              className="flex items-center gap-2.5 group"
               title="返回首页"
             >
-              <div className="bg-black text-white p-1 border-2 border-white shadow-[2px_2px_0px_0px_rgba(255,255,255,0.5)]">
-                <span className="material-symbols-outlined text-sm font-black">lens_blur</span>
+              <div className="size-8 rounded-lg bg-accent-500 flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-200">
+                <span className="material-symbols-outlined text-white text-lg">lens_blur</span>
               </div>
-              <span className="text-xs font-black uppercase tracking-widest text-black/80">SmartLex 核心</span>
-            </div>
+              <span className="text-sm font-bold text-warm-800 dark:text-warm-200 tracking-tight hidden sm:block">
+                SmartLex
+              </span>
+            </button>
 
-            <div className={`hidden sm:flex items-center gap-2 px-3 py-1 bg-white border-2 border-black shadow-[2px_2px_0px_0px_#000] cursor-pointer hover:-translate-y-0.5 transition-transform`} onClick={linkCustomFile} title="显示同步状态">
-              <span className={`size-2 rounded-full border border-black ${customFileName ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`}></span>
-              <span className="text-[10px] font-black text-black uppercase tracking-wider">
-                {customFileName ? `已连接: ${customFileName}` : '未同步'}
+            {/* 分隔线 */}
+            <div className="w-px h-5 bg-warm-200 dark:bg-warm-700 hidden sm:block" />
+
+            {/* AI 状态指示器 */}
+            <button
+              onClick={() => setCurrentView(View.SETTINGS)}
+              className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-lg hover:bg-warm-100 dark:hover:bg-warm-800 transition-colors group"
+              title="点击进入设置"
+            >
+              <span className={`size-2 rounded-full ring-2 ring-offset-1 transition-colors ${hasKey ? 'bg-success-500 ring-success-500/20' : 'bg-error-500 ring-error-500/20 animate-pulse'}`} />
+              <span className="text-xs font-medium text-warm-500 dark:text-warm-400 group-hover:text-warm-700 dark:group-hover:text-warm-200 transition-colors">
+                {hasKey ? activeProviderName : '未配置 AI'}
+              </span>
+            </button>
+
+            {/* 文件同步指示器 */}
+            <div
+              className="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-lg hover:bg-warm-100 dark:hover:bg-warm-800 transition-colors cursor-pointer"
+              onClick={linkCustomFile}
+              title="同步状态"
+            >
+              <span className={`size-2 rounded-full ring-2 ring-offset-1 transition-colors ${customFileName ? 'bg-success-500 ring-success-500/20' : 'bg-warm-300 ring-warm-300/20'}`} />
+              <span className="text-xs font-medium text-warm-500 dark:text-warm-400 truncate max-w-[140px]">
+                {customFileName ? customFileName : '未同步'}
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+
+          {/* 右侧操作 */}
+          <div className="flex items-center gap-1">
             <button
               onClick={togglePin}
-              className={`p-1.5 border-2 border-black bg-white shadow-[2px_2px_0px_0px_#000] hover:shadow-[3px_3px_0px_0px_#000] hover:-translate-y-0.5 active:translate-y-0 active:shadow-none transition-all ${isPinned ? 'bg-blue-400 text-white' : 'text-black'}`}
+              className={`size-8 flex items-center justify-center rounded-lg transition-all duration-200 ${isPinned ? 'bg-accent-100 dark:bg-accent-900/40 text-accent-600 dark:text-accent-400' : 'text-warm-400 hover:text-warm-700 dark:hover:text-warm-200 hover:bg-warm-100 dark:hover:bg-warm-800'}`}
               title={isPinned ? "取消置顶" : "窗口置顶"}
             >
-              <span className="material-symbols-outlined text-base font-bold">{isPinned ? 'push_pin' : 'keep_public'}</span>
+              <span className="material-symbols-outlined text-lg">{isPinned ? 'push_pin' : 'keep_public'}</span>
             </button>
             <button
-              onClick={() => setIsCompactMode(!isCompactMode)}
-              className="p-1.5 border-2 border-black bg-white shadow-[2px_2px_0px_0px_#000] hover:shadow-[3px_3px_0px_0px_#000] hover:-translate-y-0.5 active:translate-y-0 active:shadow-none transition-all text-black"
+              onClick={() => {
+                setIsCompactMode(!isCompactMode);
+                if (!isCompactMode) setSidebarCollapsed(true);
+                else setSidebarCollapsed(false);
+              }}
+              className="size-8 flex items-center justify-center rounded-lg text-warm-400 hover:text-warm-700 dark:hover:text-warm-200 hover:bg-warm-100 dark:hover:bg-warm-800 transition-all duration-200"
               title={isCompactMode ? "切换标准模式" : "切换紧凑模式"}
             >
-              <span className="material-symbols-outlined text-base font-bold">{isCompactMode ? 'fullscreen' : 'fullscreen_exit'}</span>
+              <span className="material-symbols-outlined text-lg">{isCompactMode ? 'fullscreen' : 'fullscreen_exit'}</span>
             </button>
           </div>
-        </div>
+        </header>
 
+        {/* ─── 内容区域 ─── */}
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
           {currentView === View.HOME && (
             <AnalysisStation onAnalyze={handleStartAnalysis} onOpenHistory={() => setCurrentView(View.HISTORY)} isAnalyzing={isAnalyzing} />
@@ -162,10 +253,11 @@ const App: React.FC = () => {
             <Settings />
           )}
         </div>
-      </main >
+      </main>
 
+      {/* ═══ AI 助手面板 ═══ */}
       {!isCompactMode && <ChatSidebar />}
-    </div >
+    </div>
   );
 };
 

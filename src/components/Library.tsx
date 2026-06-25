@@ -1,6 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+import React, { useState, useMemo } from 'react';
 import { SemanticAnalysis } from '../types';
 import { useToast } from '../contexts/ToastContext';
 import { useStore } from '../contexts/StoreContext';
@@ -11,18 +9,28 @@ interface KnowledgeLibraryProps {
   onOpenHistory: () => void;
 }
 
+const TYPE_MAPPING: Record<string, string> = {
+  'All': '全部',
+  'Metaphor': '隐喻',
+  'Idiom': '习语',
+  'Word': '单词',
+  'Slang': '俚语',
+  'Term': '术语'
+};
+
+const TYPE_LIST = ['All', 'Metaphor', 'Idiom', 'Word', 'Slang', 'Term'] as const;
+
 const KnowledgeLibrary: React.FC<KnowledgeLibraryProps> = ({
   onSelectItem, onOpenHistory
 }) => {
-  const { library, history, updateAnalysis, customFileName, linkCustomFile, importWorkspace, deleteFromLibrary } = useStore();
+  const { library, history, updateAnalysis, customFileName, linkCustomFile, deleteFromLibrary } = useStore();
   const { showToast } = useToast();
 
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
-  const [isManagingTags, setIsManagingTags] = useState<string | null>(null); // item.id
+  const [isManagingTags, setIsManagingTags] = useState<string | null>(null);
   const [newTagInput, setNewTagInput] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Extract all unique tags
   const allTags = useMemo(() => {
@@ -30,16 +38,6 @@ const KnowledgeLibrary: React.FC<KnowledgeLibraryProps> = ({
     library.forEach(item => item.tags.forEach(t => tags.add(t)));
     return Array.from(tags).sort();
   }, [library]);
-
-  // Type mapping for localization
-  const TYPE_MAPPING: Record<string, string> = {
-    'All': '全部',
-    'Metaphor': '隐喻',
-    'Idiom': '习语',
-    'Word': '单词',
-    'Slang': '俚语',
-    'Term': '术语'
-  };
 
   const filteredItems = library.filter(item => {
     const matchesSearch = item.term.toLowerCase().includes(search.toLowerCase()) ||
@@ -78,7 +76,6 @@ const KnowledgeLibrary: React.FC<KnowledgeLibraryProps> = ({
   const handleCardTagClick = (e: React.MouseEvent, tag: string) => {
     e.stopPropagation();
     setSelectedTag(tag);
-    // Smooth scroll to top
     const content = document.getElementById('library-content');
     if (content) content.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -88,120 +85,73 @@ const KnowledgeLibrary: React.FC<KnowledgeLibraryProps> = ({
     showToast('备份文件已下载', 'success');
   };
 
-  const handleExportPDF = async () => {
-    // 隐藏导出菜单，防止被截图
-    const exportMenu = document.querySelector('.group\\/export .absolute');
-    if (exportMenu) (exportMenu as HTMLElement).style.display = 'none';
-
-    const element = document.getElementById('library-content');
-    if (!element) return;
-
-    try {
-      showToast('正在生成 PDF...', 'info');
-      // 1. 克隆节点以避免影响当前界面
-      const clone = element.cloneNode(true) as HTMLElement;
-      clone.style.height = 'auto';
-      clone.style.overflow = 'visible';
-      clone.style.width = `${element.offsetWidth}px`;
-      clone.style.position = 'absolute';
-      clone.style.left = '-9999px';
-      clone.style.top = '0';
-      // 强制背景色，防止透明
-      clone.style.background = '#ffffff';
-      // 移除 Masonry 布局导致的重叠问题，改为简单的 Grid
-      const grid = clone.querySelector('.masonry-grid');
-      if (grid) {
-        (grid as HTMLElement).style.display = 'flex';
-        (grid as HTMLElement).style.flexWrap = 'wrap';
-        (grid as HTMLElement).style.gap = '24px';
-      }
-      const items = clone.querySelectorAll('.masonry-item');
-      items.forEach((item) => {
-        (item as HTMLElement).style.width = 'calc(33.333% - 16px)';
-        (item as HTMLElement).style.marginBottom = '0';
-      });
-
-      document.body.appendChild(clone);
-
-      // 等待图片加载
-      await new Promise(resolve => setTimeout(resolve, 1000)); // 增加等待时间到 1s
-
-      const canvas = await html2canvas(clone, {
-        scale: 2,
-        useCORS: true,
-        logging: true, // 开启日志方便调试
-        backgroundColor: '#ffffff',
-        width: element.scrollWidth, // 显式指定宽度
-        height: clone.scrollHeight, // 显式指定高度
-        windowWidth: element.scrollWidth,
-        windowHeight: clone.scrollHeight
-      });
-
-      document.body.removeChild(clone);
-      if (exportMenu) (exportMenu as HTMLElement).style.display = '';
-
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'px',
-        format: [canvas.width, canvas.height]
-      });
-
-      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-      pdf.save(`SmartLex_Library_${new Date().toISOString().split('T')[0]}.pdf`);
-      showToast('PDF 下载成功', 'success');
-    } catch (error) {
-      console.error('PDF generation failed', error);
-      showToast('PDF 生成失败', 'error');
-      if (exportMenu) (exportMenu as HTMLElement).style.display = '';
-    }
-  };
-
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
-      <header className="p-6 lg:p-8 bg-white border-b-4 border-black">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+    <div className="flex-1 flex flex-col overflow-hidden bg-background">
+      {/* Header */}
+      <header className="px-6 lg:px-8 py-6 bg-card border-b border-border">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
           <div>
-            <h2 className="font-display text-4xl font-black tracking-tighter text-black italic drop-shadow-[2px_2px_0_#FFF] stroke-black text-stroke-1">知识库</h2>
-            <p className="text-[10px] text-white bg-black inline-block px-2 py-1 font-bold uppercase tracking-widest mt-1 -rotate-1 shadow-[2px_2px_0px_0px_#ccc]">
-              {customFileName ? `已同步: ${customFileName}` : '本地工作区'}
-            </p>
+            <h2 className="text-2xl font-bold text-foreground tracking-tight">知识库</h2>
+            <div className="flex items-center gap-2 mt-1.5">
+              <span className={`inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] px-2.5 py-1 rounded-md ${
+                customFileName
+                  ? 'bg-success/10 text-success border border-success/20'
+                  : 'bg-muted text-muted-foreground border border-border'
+              }`}>
+                <span className="material-symbols-outlined text-xs">
+                  {customFileName ? 'cloud_done' : 'folder'}
+                </span>
+                {customFileName ? customFileName : '本地工作区'}
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
+            <button onClick={onExport} className="btn btn-ghost text-xs gap-1.5">
+              <span className="material-symbols-outlined text-sm">download</span>
+              导出备份
+            </button>
             <button
               onClick={linkCustomFile}
-              className={`px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border-3 border-black shadow-[4px_4px_0px_0px_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#000] active:translate-y-1 active:shadow-[2px_2px_0px_0px_#000] ${customFileName
-                ? 'bg-green-400 text-black'
-                : 'bg-white text-black hover:bg-yellow-300'
-                }`}
+              className={`btn text-xs gap-1.5 ${
+                customFileName ? 'btn-success' : 'btn-secondary'
+              }`}
             >
-              <span className="material-symbols-outlined text-lg font-bold">{customFileName ? 'cloud_done' : 'attachment'}</span>
+              <span className="material-symbols-outlined text-sm">
+                {customFileName ? 'cloud_done' : 'link'}
+              </span>
               {customFileName ? '已链接' : '选择路径'}
             </button>
           </div>
         </div>
 
+        {/* Filters Row */}
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative group flex-1">
-              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-black transition-colors text-lg font-bold">search</span>
+          {/* Search + Type filter */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 text-xl pointer-events-none z-10">
+                search
+              </span>
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-white border-3 border-black rounded-xl focus:outline-none focus:shadow-[6px_6px_0px_0px_#000] focus:-translate-y-1 transition-all text-sm font-bold placeholder-gray-400"
+                className="input pl-10 pr-4 text-sm"
                 placeholder="搜索知识库..."
                 type="text"
               />
             </div>
 
-            <div className="flex flex-wrap gap-2 items-center">
-              {['All', 'Metaphor', 'Idiom', 'Word', 'Slang', 'Term'].map(t => (
+            <div className="flex flex-wrap gap-1.5">
+              {TYPE_LIST.map(t => (
                 <button
                   key={t}
                   onClick={() => setFilter(t)}
-                  className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase whitespace-nowrap transition-all border-3 border-black ${filter === t ? 'bg-blue-500 text-white shadow-[4px_4px_0px_0px_#000] -translate-y-0.5' : 'bg-white text-black hover:bg-gray-100 hover:shadow-[2px_2px_0px_0px_#000]'
-                    }`}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap transition-all duration-150 ${
+                    filter === t
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
                 >
                   {TYPE_MAPPING[t] || t}
                 </button>
@@ -209,26 +159,31 @@ const KnowledgeLibrary: React.FC<KnowledgeLibraryProps> = ({
             </div>
           </div>
 
-          {/* Tag Cloud Filter */}
+          {/* Tag filter bar */}
           {allTags.length > 0 && (
-            <div className="flex flex-wrap gap-2 items-center mt-2 border-t-2 border-black border-dashed pt-4 opacity-80">
-              <span className="text-[10px] font-black uppercase tracking-widest text-black mr-2 flex items-center gap-1 bg-yellow-300 px-2 border-2 border-black -rotate-2">
-                <span className="material-symbols-outlined text-xs">sell</span> 标签:
+            <div className="flex flex-wrap gap-1.5 items-center pt-3 border-t border-border">
+              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.12em] mr-1">
+                标签筛选
               </span>
               <button
                 onClick={() => setSelectedTag(null)}
-                className={`px-2 py-1 rounded-md text-[9px] font-bold transition-all border-2 border-black ${!selectedTag ? 'bg-black text-white shadow-[2px_2px_0px_0px_#ccc]' : 'bg-white text-black hover:bg-gray-200'}`}
+                className={`px-2.5 py-1 rounded-md text-[10px] font-semibold transition-all ${
+                  !selectedTag
+                    ? 'bg-foreground text-background'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                }`}
               >
-                清除
+                全部
               </button>
               {allTags.map(tag => (
                 <button
                   key={tag}
                   onClick={() => setSelectedTag(tag === selectedTag ? null : tag)}
-                  className={`px-2 py-1 rounded-md text-[9px] font-bold transition-all flex items-center gap-1 border-2 border-black ${tag === selectedTag
-                    ? 'bg-blue-500 text-white shadow-[2px_2px_0px_0px_#000]'
-                    : 'bg-white text-black hover:bg-yellow-200 shadow-[1px_1px_0px_0px_#000]'
-                    }`}
+                  className={`px-2.5 py-1 rounded-md text-[10px] font-semibold transition-all ${
+                    tag === selectedTag
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
                 >
                   #{tag}
                 </button>
@@ -236,89 +191,130 @@ const KnowledgeLibrary: React.FC<KnowledgeLibraryProps> = ({
             </div>
           )}
         </div>
-      </header >
+      </header>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-8 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]" id="library-content">
+      {/* Content */}
+      <div
+        className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-8 bg-dot-pattern"
+        id="library-content"
+      >
         {filteredItems.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-gray-300 font-technical italic gap-4">
-            <span className="material-symbols-outlined text-7xl opacity-10">inventory_2</span>
+          <div className="h-full flex flex-col items-center justify-center text-muted-foreground/25 gap-4">
+            <span className="material-symbols-outlined text-8xl">inventory_2</span>
             <div className="text-center">
-              <p className="text-sm font-bold text-gray-400">未找到匹配项</p>
+              <p className="text-sm font-medium">未找到匹配项</p>
+              {selectedTag && (
+                <button
+                  onClick={() => setSelectedTag(null)}
+                  className="mt-3 text-xs font-semibold text-primary hover:underline"
+                >
+                  清除标签筛选
+                </button>
+              )}
             </div>
-            {selectedTag && (
-              <button onClick={() => setSelectedTag(null)} className="text-blue-500 text-xs font-bold underline bg-white px-2 border border-blue-500">显示全部</button>
-            )}
           </div>
         ) : (
-          <div className="masonry-grid">
+          <div className="columns-1 sm:columns-2 lg:columns-3 gap-5 space-y-5">
             {filteredItems.map(item => (
-              <div key={item.id} className="masonry-item group relative">
+              <div key={item.id} className="break-inside-avoid group relative">
+                {/* Card */}
                 <div
-                  className="bg-white border-3 border-black rounded-xl p-6 shadow-[4px_4px_0px_0px_#000] transition-all hover:shadow-[8px_8px_0px_0px_#000] hover:-translate-y-1 hover:rotate-1 flex flex-col cursor-pointer"
+                  className="card depth-1 hover:depth-2 transition-all duration-200 flex flex-col cursor-pointer"
                   onClick={() => onSelectItem(item)}
                 >
-                  <div className="flex justify-between items-start mb-4">
-                    <span className="px-2 py-1 bg-yellow-300 text-black border-2 border-black text-[9px] font-black uppercase rounded shadow-[2px_2px_0px_0px_#000]">{TYPE_MAPPING[item.type] || item.type}</span>
-                    <div className="flex items-center gap-1">
+                  {/* Top row: type badge + actions */}
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="chip chip-sm font-semibold">
+                      {TYPE_MAPPING[item.type] || item.type}
+                    </span>
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           setIsManagingTags(isManagingTags === item.id ? null : item.id);
                         }}
-                        className="size-8 rounded flex items-center justify-center text-black border-2 border-transparent hover:border-black hover:bg-gray-100 transition-all"
+                        className="btn-icon btn-icon-ghost size-7"
                         title="管理标签"
                       >
-                        <span className="material-symbols-outlined text-lg">label_important</span>
+                        <span className="material-symbols-outlined text-sm">label</span>
                       </button>
                       <button
                         onClick={(e) => handleDeleteItem(e, item.id)}
-                        className="size-8 rounded flex items-center justify-center text-black hover:text-red-500 hover:bg-red-50 border-2 border-transparent hover:border-black transition-all opacity-0 group-hover:opacity-100"
-                        title="删除资产"
+                        className="btn-icon btn-icon-ghost size-7 text-muted-foreground hover:text-destructive"
+                        title="删除"
                       >
-                        <span className="material-symbols-outlined text-lg">delete</span>
+                        <span className="material-symbols-outlined text-sm">delete</span>
                       </button>
                     </div>
                   </div>
-                  <h3 className="font-display text-2xl font-black text-black mb-2 tracking-tighter uppercase">{item.term}</h3>
-                  <p className="text-xs text-black font-medium line-clamp-2 leading-relaxed italic mb-5 border-l-4 border-gray-300 pl-2">"{item.semanticCore.en}"</p>
 
-                  {/* Item Tags with click-to-filter */}
-                  <div className="flex flex-wrap gap-1.5 mt-auto">
-                    {item.tags.map(tag => (
+                  {/* Title */}
+                  <h3 className="text-xl font-bold text-foreground mb-2 tracking-tight truncate">
+                    {item.term}
+                  </h3>
+
+                  {/* Definition preview */}
+                  <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed italic mb-4 border-l-[3px] border-primary/20 pl-3">
+                    &ldquo;{item.semanticCore.en}&rdquo;
+                  </p>
+
+                  {/* Tags */}
+                  <div className="flex flex-wrap gap-1 mt-auto mb-3">
+                    {item.tags.slice(0, 4).map(tag => (
                       <span
                         key={tag}
                         onClick={(e) => handleCardTagClick(e, tag)}
-                        className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[9px] font-black border border-blue-200 hover:border-black hover:bg-blue-100 transition-all uppercase"
+                        className="chip chip-xs cursor-pointer hover:chip-amber transition-colors"
                       >
                         #{tag}
                       </span>
                     ))}
+                    {item.tags.length > 4 && (
+                      <span className="chip chip-xs text-muted-foreground/50">
+                        +{item.tags.length - 4}
+                      </span>
+                    )}
                   </div>
 
-                  <div className="mt-4 pt-4 border-t-2 border-dashed border-gray-200 flex items-center gap-1.5 text-[9px] text-gray-400 font-mono">
+                  {/* Footer: timestamp */}
+                  <div className="pt-3 border-t border-border flex items-center gap-1.5 text-[10px] text-muted-foreground/50 font-mono">
                     <span className="material-symbols-outlined text-[10px]">schedule</span>
-                    <span className="font-bold">{new Date(item.timestamp).toLocaleDateString()}</span>
+                    <span>{new Date(item.timestamp).toLocaleDateString('zh-CN')}</span>
                   </div>
                 </div>
 
                 {/* Tag Management Overlay */}
                 {isManagingTags === item.id && (
-                  <div className="absolute inset-x-0 bottom-0 bg-white dark:bg-gray-900 p-5 rounded-b-xl border-t-3 border-black dark:border-white z-10 animate-in slide-in-from-bottom-2 duration-200">
-                    <div className="flex justify-between items-center mb-4">
-                      <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest flex items-center gap-1">
-                        <span className="material-symbols-outlined text-sm">edit_note</span> 管理标签
+                  <div className="absolute inset-x-0 bottom-0 bg-card rounded-b-xl border-t border-border p-4 z-10 animate-in slide-in-from-bottom-2 duration-200 shadow-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.12em]">
+                        管理标签
                       </span>
-                      <button onClick={() => setIsManagingTags(null)} className="material-symbols-outlined text-sm text-black hover:text-red-500">close</button>
+                      <button
+                        onClick={() => setIsManagingTags(null)}
+                        className="material-symbols-outlined text-sm text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        close
+                      </button>
                     </div>
 
-                    <div className="flex flex-wrap gap-1.5 mb-5 max-h-24 overflow-y-auto custom-scrollbar">
+                    <div className="flex flex-wrap gap-1.5 mb-4 max-h-24 overflow-y-auto">
                       {item.tags.map(t => (
-                        <span key={t} className="flex items-center gap-1.5 px-2 py-1 bg-primary/10 text-primary text-[10px] font-bold rounded-lg group/tag">
+                        <span
+                          key={t}
+                          className="chip group/tag gap-1"
+                        >
                           {t}
-                          <button onClick={() => handleRemoveTag(item, t)} className="material-symbols-outlined text-[12px] opacity-40 hover:opacity-100 hover:text-red-500">cancel</button>
+                          <button
+                            onClick={() => handleRemoveTag(item, t)}
+                            className="material-symbols-outlined text-[12px] text-muted-foreground/40 hover:text-destructive"
+                          >
+                            cancel
+                          </button>
                         </span>
                       ))}
                     </div>
+
                     <div className="flex gap-2">
                       <input
                         autoFocus
@@ -326,11 +322,11 @@ const KnowledgeLibrary: React.FC<KnowledgeLibraryProps> = ({
                         onChange={(e) => setNewTagInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleAddTag(item)}
                         placeholder="添加新标签..."
-                        className="flex-1 bg-white dark:bg-gray-800 border-2 border-black rounded-lg text-xs py-2 px-4 focus:shadow-[4px_4px_0px_0px_#000] focus:-translate-y-0.5 transition-all outline-none"
+                        className="input flex-1 text-xs"
                       />
                       <button
                         onClick={() => handleAddTag(item)}
-                        className="bg-black text-white size-9 rounded-lg border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_#ccc] hover:shadow-[4px_4px_0px_0px_#ccc] hover:-translate-y-0.5 transition-all"
+                        className="btn-icon btn-icon-primary"
                       >
                         <span className="material-symbols-outlined text-sm">add</span>
                       </button>
@@ -342,7 +338,7 @@ const KnowledgeLibrary: React.FC<KnowledgeLibraryProps> = ({
           </div>
         )}
       </div>
-    </div >
+    </div>
   );
 };
 

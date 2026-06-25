@@ -54,7 +54,7 @@ export interface SemanticAnalysis {
   groundingSources?: GroundingSource[];
   visualContext?: string;
   meta?: {
-    provider: 'doubao';
+    provider: 'glm' | 'deepseek' | 'doubao';
     model: string;
     latencyMs: number;
   };

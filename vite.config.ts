@@ -7,15 +7,8 @@ export default defineConfig(({ mode }) => {
   return {
     server: {
       port: 3000,
-      strictPort: true,
+      strictPort: false,
       host: '0.0.0.0',
-      proxy: {
-        '/api/v3': {
-          target: 'https://ark.cn-beijing.volces.com',
-          changeOrigin: true,
-          secure: false,
-        }
-      }
     },
     // to make use of `TAURI_DEBUG` and other env variables
     // https://tauri.studio/v1/api/config#buildconfig.beforedevcommand

@@ -35,3 +35,10 @@ src-tauri/gen/schemas
 .env
 .env.*
 !.env.example
+
+# Build artifacts
+*.exe
+!src-tauri/icons/*.ico
+
+# WorkBuddy
+.workbuddy/

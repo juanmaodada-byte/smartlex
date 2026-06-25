@@ -10,6 +10,14 @@ interface UsageExamplesProps {
 
 const cleanString = (str: string) => str.replace(/[*_~`]/g, '');
 
+const CATEGORIES = [
+    { value: 'General', label: '通用' },
+    { value: 'Business', label: '商务' },
+    { value: 'Literary', label: '文学' },
+    { value: 'Slang', label: '俚语' },
+    { value: 'Academic', label: '学术' },
+] as const;
+
 const UsageExamples: React.FC<UsageExamplesProps> = ({ analysis, onUpdate }) => {
     const { showToast } = useToast();
     const [isGenerating, setIsGenerating] = useState(false);
@@ -28,7 +36,7 @@ const UsageExamples: React.FC<UsageExamplesProps> = ({ analysis, onUpdate }) => 
             showToast('AI 已成功生成更多例句', 'success');
         } catch (err) {
             console.error(err);
-            showToast("AI 生成失败，请重试", 'error');
+            showToast('AI 生成失败，请重试', 'error');
         } finally {
             setIsGenerating(false);
         }
@@ -57,45 +65,58 @@ const UsageExamples: React.FC<UsageExamplesProps> = ({ analysis, onUpdate }) => 
 
     return (
         <section className="space-y-6">
-            <div className="flex items-center justify-between px-4 border-b-4 border-black pb-4 bg-yellow-400 p-4 -mx-4 mb-6 shadow-[0px_4px_0px_0px_rgba(0,0,0,0.1)]">
-                <h3 className="text-sm font-black text-black uppercase tracking-widest flex items-center gap-2">
-                    <span className="material-symbols-outlined text-black text-lg">explore</span> 用法探索 (EXAMPLES)
-                </h3>
-                <div className="flex items-center gap-2 print:hidden">
+            {/* Section Header */}
+            <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+                <div className="flex items-center gap-3">
+                    <div className="badge badge-amber">
+                        <span className="material-symbols-outlined text-sm">explore</span>
+                        用法探索
+                    </div>
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.15em]">Examples</span>
+                </div>
+                <div className="flex items-center gap-2">
                     <button
                         onClick={handleGenerateMore}
                         disabled={isGenerating}
-                        className="flex items-center gap-1.5 px-3 py-2 bg-white text-black rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border-2 border-black shadow-[2px_2px_0px_0px_#000] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#000] active:translate-y-0.5 active:shadow-none"
+                        className="btn btn-ghost text-xs gap-1.5"
                     >
-                        <span className={`material-symbols-outlined text-sm ${isGenerating ? 'animate-spin' : ''}`}>auto_awesome</span>
-                        <span className="ml-1">{isGenerating ? 'GENERATING...' : 'AI 扩展'}</span>
+                        <span className={`material-symbols-outlined text-sm ${isGenerating ? 'animate-spin' : ''}`}>
+                            auto_awesome
+                        </span>
+                        {isGenerating ? '生成中...' : 'AI 扩展'}
                     </button>
                     <button
                         onClick={() => setIsAddingExample(!isAddingExample)}
-                        className="flex items-center gap-1.5 px-3 py-2 bg-blue-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border-2 border-black shadow-[2px_2px_0px_0px_#000] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#000] active:translate-y-0.5 active:shadow-none"
+                        className="btn btn-secondary text-xs gap-1.5"
                     >
-                        <span className="material-symbols-outlined text-sm font-black">add_circle</span> 自定义
+                        <span className="material-symbols-outlined text-sm">add_circle</span>
+                        自定义
                     </button>
                 </div>
             </div>
 
+            {/* Add Example Form */}
             {isAddingExample && (
-                <form onSubmit={handleAddCustomExample} className="bg-white border-3 border-black p-6 rounded-xl space-y-4 animate-in slide-in-from-top-2 duration-300 print:hidden shadow-[4px_4px_0px_0px_#000] mb-6">
+                <form onSubmit={handleAddCustomExample} className="card depth-2 space-y-4 animate-in slide-in-from-top-2 duration-200">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-black text-black uppercase ml-1 bg-yellow-300 inline-block px-1 border border-black rotate-1">Example (EN)</label>
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.12em] ml-1">
+                                English Example
+                            </label>
                             <input
                                 placeholder="输入英文例句..."
-                                className="w-full bg-white border-2 border-black rounded-lg text-sm py-3 px-4 focus:outline-none focus:shadow-[4px_4px_0px_0px_#000] font-bold"
+                                className="input text-sm"
                                 value={newEx.en}
                                 onChange={(e) => setNewEx({ ...newEx, en: e.target.value })}
                             />
                         </div>
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-black text-black uppercase ml-1 bg-green-300 inline-block px-1 border border-black -rotate-1">Translation (CN)</label>
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.12em] ml-1">
+                                Chinese Translation
+                            </label>
                             <input
                                 placeholder="输入中文翻译..."
-                                className="w-full bg-white border-2 border-black rounded-lg text-sm py-3 px-4 focus:outline-none focus:shadow-[4px_4px_0px_0px_#000] font-bold"
+                                className="input text-sm"
                                 value={newEx.cn}
                                 onChange={(e) => setNewEx({ ...newEx, cn: e.target.value })}
                             />
@@ -105,33 +126,57 @@ const UsageExamples: React.FC<UsageExamplesProps> = ({ analysis, onUpdate }) => 
                         <select
                             value={newEx.category}
                             onChange={(e) => setNewEx({ ...newEx, category: e.target.value })}
-                            className="bg-white border-2 border-black rounded-lg text-xs py-2 px-4 font-black shadow-[2px_2px_0px_0px_#000]"
+                            className="input text-xs w-auto"
                         >
-                            <option value="General">通用</option>
-                            <option value="Business">商务</option>
-                            <option value="Literary">文学</option>
-                            <option value="Slang">俚语</option>
-                            <option value="Academic">学术</option>
+                            {CATEGORIES.map((cat) => (
+                                <option key={cat.value} value={cat.value}>{cat.label}</option>
+                            ))}
                         </select>
                         <div className="flex gap-2">
-                            <button type="button" onClick={() => setIsAddingExample(false)} className="px-4 py-2 text-xs font-black text-black hover:underline uppercase">Cancel</button>
-                            <button type="submit" className="px-6 py-2 bg-black text-white rounded-lg text-xs font-black shadow-[2px_2px_0px_0px_#888] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#888] uppercase border-2 border-transparent transition-all">Add Example</button>
+                            <button
+                                type="button"
+                                onClick={() => setIsAddingExample(false)}
+                                className="btn btn-ghost text-xs"
+                            >
+                                取消
+                            </button>
+                            <button type="submit" className="btn btn-primary text-xs">
+                                添加例句
+                            </button>
                         </div>
                     </div>
                 </form>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Examples Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {analysis.usageExamples.map((ex, i) => (
-                    <div key={i} className="group bg-white p-6 rounded-xl border-3 border-black shadow-[4px_4px_0px_0px_#000] hover:shadow-[6px_6px_0px_0px_#000] transition-all hover:-translate-y-1 relative">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="flex items-center gap-2">
-                                <span className="text-[9px] font-black text-black uppercase bg-white border-2 border-black px-2 py-1 rounded shadow-[2px_2px_0px_0px_#ccc] tracking-widest">{ex.category}</span>
-                            </div>
-                            <button onClick={() => handleRemoveExample(i)} className="opacity-0 group-hover:opacity-100 material-symbols-outlined text-black hover:text-red-600 text-lg transition-all print:hidden font-bold">delete</button>
+                    <div
+                        key={i}
+                        className="card depth-1 group hover:depth-2 transition-all duration-200 relative"
+                    >
+                        {/* Category badge & remove */}
+                        <div className="flex items-center justify-between mb-4">
+                            <span className="chip chip-sm">
+                                {ex.category}
+                            </span>
+                            <button
+                                onClick={() => handleRemoveExample(i)}
+                                className="opacity-0 group-hover:opacity-100 material-symbols-outlined text-base text-muted-foreground hover:text-destructive transition-all font-bold"
+                            >
+                                delete
+                            </button>
                         </div>
-                        <p className="text-black font-black text-base mb-4 leading-relaxed font-serif">"{cleanString(ex.en)}"</p>
-                        <p className="text-sm text-gray-700 italic border-t-2 border-dashed border-gray-300 pt-4 font-bold">{cleanString(ex.cn)}</p>
+
+                        {/* English example */}
+                        <blockquote className="text-base font-medium text-foreground leading-relaxed mb-4 border-l-[3px] border-primary/30 pl-4">
+                            &ldquo;{cleanString(ex.en)}&rdquo;
+                        </blockquote>
+
+                        {/* Chinese translation */}
+                        <p className="text-sm text-muted-foreground leading-relaxed pt-3 border-t border-border italic">
+                            {cleanString(ex.cn)}
+                        </p>
                     </div>
                 ))}
             </div>

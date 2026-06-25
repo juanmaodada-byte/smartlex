@@ -12,53 +12,71 @@ const cleanString = (str: string) => str.replace(/[*_~`]/g, '');
 
 const ChatResult: React.FC<ChatResultProps> = ({ analysis, onOpenHistory, onSave, isSaved }) => {
     return (
-        <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-[#11141d] relative">
-            <header className="h-16 flex items-center justify-between px-4 lg:px-8 border-b-4 border-black shrink-0 bg-yellow-400 z-30 shadow-[0px_4px_0px_0px_rgba(0,0,0,0.1)]">
-                <div className="flex items-center gap-2 text-black text-[10px] font-black uppercase tracking-widest bg-white px-3 py-1 border-2 border-black rotate-1 shadow-[2px_2px_0px_0px_#000]">
-                    <span className="cursor-pointer hover:text-blue-600 transition-colors" onClick={() => onOpenHistory()}>HISTORY</span>
-                    <span className="material-symbols-outlined text-xs font-bold">chevron_right</span>
-                    <span className="text-black">CHAT</span>
-                </div>
+        <div className="flex-1 flex flex-col overflow-hidden bg-background relative">
+            {/* Top Bar */}
+            <header className="h-14 flex items-center justify-between px-5 border-b border-border shrink-0 bg-card/80 backdrop-blur-sm z-20">
+                <button
+                    onClick={onOpenHistory}
+                    className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                >
+                    <span className="material-symbols-outlined text-lg">history</span>
+                    <span>历史记录</span>
+                    <span className="material-symbols-outlined text-sm text-muted-foreground/40">chevron_right</span>
+                    <span className="text-foreground">对话</span>
+                </button>
                 <button
                     onClick={onSave}
                     disabled={isSaved}
-                    className={`h-10 px-6 rounded-lg text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all border-3 border-black shadow-[4px_4px_0px_0px_#000] ${isSaved ? 'bg-gray-100 text-gray-400 border-gray-400 shadow-none' : 'bg-green-500 text-white hover:bg-green-400 hover:shadow-[6px_6px_0px_0px_#000] hover:-translate-y-1 active:translate-y-1 active:shadow-[2px_2px_0px_0px_#000]'
-                        }`}
+                    className={`btn text-xs gap-1.5 ${
+                        isSaved
+                            ? 'btn-ghost text-success cursor-default'
+                            : 'btn-success'
+                    }`}
                 >
-                    <span className="material-symbols-outlined text-sm font-bold">{isSaved ? 'check_circle' : 'bookmark_add'}</span>
-                    {isSaved ? 'SAVED' : 'SAVE!'}
+                    <span className="material-symbols-outlined text-sm">
+                        {isSaved ? 'check_circle' : 'bookmark_add'}
+                    </span>
+                    {isSaved ? '已保存' : '保存'}
                 </button>
             </header>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-12 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
-                <div className="max-w-3xl mx-auto space-y-8">
-                    {/* User Input Section */}
+            {/* Chat Content */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+                <div className="max-w-3xl mx-auto p-6 lg:p-10 space-y-8">
+                    {/* User Message */}
                     <div className="flex gap-4 items-start flex-row-reverse">
-                        <div className="size-12 rounded-full bg-blue-500 border-3 border-black flex items-center justify-center shrink-0 shadow-[4px_4px_0px_0px_#000]">
-                            <span className="material-symbols-outlined text-white text-2xl">person</span>
+                        <div className="avatar avatar-blue shrink-0">
+                            <span className="material-symbols-outlined text-white text-xl">person</span>
                         </div>
-                        <div className="bg-white p-6 rounded-2xl rounded-tr-none border-3 border-black shadow-[6px_6px_0px_0px_#000]">
-                            <p className="text-xs font-black text-blue-500 uppercase tracking-widest mb-2 border-b-2 border-dashed border-gray-200 pb-1">USER QUERY</p>
-                            <p className="text-lg text-black font-bold leading-relaxed font-display">"{analysis.term}"</p>
-                            {analysis.context && analysis.context !== "General Context" && (
-                                <p className="mt-2 text-xs text-gray-500 font-bold italic bg-gray-100 p-2 rounded border border-gray-300">Context: {analysis.context}</p>
+                        <div className="card depth-2 rounded-2xl rounded-tr-sm flex-1">
+                            <p className="text-[10px] font-semibold text-primary uppercase tracking-[0.15em] mb-2 pb-2 border-b border-border">
+                                User Query
+                            </p>
+                            <p className="text-lg font-semibold text-foreground leading-relaxed">
+                                &ldquo;{analysis.term}&rdquo;
+                            </p>
+                            {analysis.context && analysis.context !== 'General Context' && (
+                                <p className="mt-3 text-xs text-muted-foreground bg-muted rounded-lg p-2.5 font-medium">
+                                    Context: {analysis.context}
+                                </p>
                             )}
                         </div>
                     </div>
 
-                    {/* AI Response Section */}
+                    {/* AI Response */}
                     <div className="flex gap-4 items-start">
-                        <div className="size-12 rounded-full bg-yellow-400 border-3 border-black flex items-center justify-center shrink-0 shadow-[4px_4px_0px_0px_#000]">
-                            <span className="material-symbols-outlined text-black text-2xl font-black">smart_toy</span>
+                        <div className="avatar avatar-amber shrink-0">
+                            <span className="material-symbols-outlined text-foreground text-xl">smart_toy</span>
                         </div>
-                        <div className="flex-1 space-y-4">
-                            <div className="bg-white p-8 rounded-2xl rounded-tl-none border-3 border-black shadow-[8px_8px_0px_0px_#000] relative">
-                                <div className="absolute -top-3 left-0 bg-red-500 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 border-2 border-black rotate-2 shadow-[2px_2px_0px_0px_#000]">Origin Story</div>
-                                <div className="prose prose-sm max-w-none mt-2">
-                                    <p className="text-lg text-black leading-8 whitespace-pre-wrap font-medium font-serif">
-                                        {cleanString(analysis.originStory)}
-                                    </p>
-                                </div>
+                        <div className="card depth-3 rounded-2xl rounded-tl-sm flex-1">
+                            <div className="badge badge-rose mb-4">
+                                <span className="material-symbols-outlined text-xs">history_edu</span>
+                                Origin Story
+                            </div>
+                            <div className="prose prose-sm max-w-none">
+                                <p className="text-base text-foreground leading-8 whitespace-pre-wrap font-medium">
+                                    {cleanString(analysis.originStory)}
+                                </p>
                             </div>
                         </div>
                     </div>
