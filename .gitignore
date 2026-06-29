@@ -55,3 +55,4 @@ doc/
 
 # Extension build output
 dist-extension/
+smartlex-extension-*.zip
