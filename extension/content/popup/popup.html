@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartLex Capture</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- ── Header ── -->
+    <header class="popup-header">
+      <div class="popup-logo">
+        <span class="popup-logo-icon">⬡</span>
+        <span class="popup-logo-text">SmartLex</span>
+      </div>
+      <span id="inbox-badge" class="popup-badge" title="待处理词条数">0</span>
+    </header>
+
+    <!-- ── 引导区域 ── -->
+    <section class="popup-guide">
+      <div class="popup-guide-icon">📖</div>
+      <p class="popup-guide-title">在任意页面划词即可捕获</p>
+      <p class="popup-guide-sub">
+        选中英文单词或短语 → 即时 AI 释义 → 一键收藏<br>
+        快捷键 <kbd>Ctrl+Shift+S</kbd> 亦可触发
+      </p>
+    </section>
+
+    <!-- ── 统计 ── -->
+    <section class="popup-stats">
+      <div class="popup-stat">
+        <span id="stat-inbox" class="popup-stat-value">--</span>
+        <span class="popup-stat-label">待处理</span>
+      </div>
+      <div class="popup-stat">
+        <span id="stat-today" class="popup-stat-value">--</span>
+        <span class="popup-stat-label">今日捕获</span>
+      </div>
+      <div class="popup-stat">
+        <span id="stat-review" class="popup-stat-value">--</span>
+        <span class="popup-stat-label">待复习</span>
+      </div>
+    </section>
+
+    <!-- ── 操作栏 ── -->
+    <footer class="popup-actions">
+      <button id="btn-open-app" class="popup-btn popup-btn-primary">
+        打开 SmartLex
+      </button>
+      <button id="btn-sync" class="popup-btn popup-btn-secondary" title="从扩展同步到 App">
+        🔄 同步
+      </button>
+    </footer>
+
+    <!-- ── 底部提示 ── -->
+    <p class="popup-footer-text">
+      打开 SmartLex App 同步词条并进行深度分析
+    </p>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

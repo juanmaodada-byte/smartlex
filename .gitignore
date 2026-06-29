@@ -31,6 +31,10 @@ src-tauri/gen/android/.gradle
 src-tauri/gen/android/local.properties
 src-tauri/gen/schemas
 
+# Extension private key (public key is in manifest.json)
+extension/key.pem
+extension/key.pub
+
 # Environment variables
 .env
 .env.*
@@ -42,3 +46,12 @@ src-tauri/gen/schemas
 
 # WorkBuddy
 .workbuddy/
+
+# Project docs (local only)
+doc/
+
+# Claude Code
+.claude/
+
+# Extension build output
+dist-extension/

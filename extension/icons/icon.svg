@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Background: solid indigo rounded square -->
+  <rect x="4" y="4" width="120" height="120" rx="24" fill="#6366f1"/>
+
+  <!-- Open book: left page -->
+  <path d="M40 30v54c0 0 8-4 18-4V30c-10 0-16 4-18 4z" fill="#e0e7ff" opacity="0.9"/>
+  <!-- Open book: right page -->
+  <path d="M68 84c0 0-8-4-18-4V26c10 0 18 4 18 4v54z" fill="#c7d2fe" opacity="0.85"/>
+
+  <!-- Magnifying glass -->
+  <circle cx="86" cy="84" r="20" fill="white" opacity="0.92"/>
+  <circle cx="86" cy="84" r="13" stroke="#6366f1" stroke-width="4"/>
+  <!-- Handle -->
+  <line x1="98" y1="96" x2="114" y2="112" stroke="white" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- Highlight dot -->
+  <circle cx="92" cy="76" r="3" fill="#6366f1"/>
+</svg>

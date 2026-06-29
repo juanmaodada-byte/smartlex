@@ -307,6 +307,21 @@ const Settings: React.FC = () => {
             </div>
           </section>
 
+          {/* Chrome 扩展配置 */}
+          <section className="card depth-1">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="icon-box icon-box-primary">
+                <span className="material-symbols-outlined">extension</span>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-foreground">Chrome 扩展</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">连接 SmartLex Capture 扩展，同步阅读中收集的词汇</p>
+              </div>
+            </div>
+
+            <ExtensionConfig />
+          </section>
+
           {/* About */}
           <section className="card depth-1">
             <div className="flex items-center gap-3 mb-6">
@@ -322,7 +337,7 @@ const Settings: React.FC = () => {
             <div className="space-y-3">
               <div className="flex items-center justify-between p-4 rounded-xl bg-muted">
                 <span className="text-sm font-medium text-foreground">当前版本</span>
-                <span className="chip chip-sm font-mono">v0.1.8</span>
+                <span className="chip chip-sm font-mono">v0.2.0</span>
               </div>
 
               <div className="p-4 rounded-xl bg-muted text-center">
@@ -340,6 +355,73 @@ const Settings: React.FC = () => {
 
         </div>
       </div>
+    </div>
+  );
+};
+
+const ExtensionConfig: React.FC = () => {
+  const isExtensionSupported = typeof chrome !== 'undefined' && !!chrome.runtime && !(window as any).__TAURI__;
+
+  // Tauri 桌面端：显示不可用提示
+  if (!isExtensionSupported) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-warning-50 dark:bg-warning-900/20 border border-warning-200 dark:border-warning-800/40">
+          <span className="text-sm">⚠️</span>
+          <p className="text-xs text-warning-700 dark:text-warning-400">
+            Chrome 扩展仅在 Chromium 浏览器中可用。<br />
+            桌面端请使用浏览器访问 SmartLex 以体验划词捕获功能。
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const [extId, setExtIdLocal] = useState(localStorage.getItem('smartlex_extension_id') || '');
+  const [status, setStatus] = useState<'idle' | 'checking' | 'ok' | 'fail'>('idle');
+
+  const testConnection = async () => {
+    if (!extId.trim()) return;
+    setStatus('checking');
+    try {
+      const r = await chrome.runtime.sendMessage(extId.trim(), { type: 'PING' });
+      setStatus(r?.status === 'OK' ? 'ok' : 'fail');
+    } catch {
+      setStatus('fail');
+    }
+  };
+
+  const save = () => {
+    if (extId.trim()) {
+      localStorage.setItem('smartlex_extension_id', extId.trim());
+    } else {
+      localStorage.removeItem('smartlex_extension_id');
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2">
+        <input
+          value={extId}
+          onChange={e => { setExtIdLocal(e.target.value); setStatus('idle'); }}
+          onBlur={save}
+          placeholder="输入扩展 ID（chrome://extensions/ 中查看）"
+          className="input flex-1 text-sm"
+        />
+        <button
+          onClick={testConnection}
+          disabled={!extId.trim() || status === 'checking'}
+          className="btn btn-secondary text-xs gap-1"
+        >
+          {status === 'checking' ? '检测中…' : '测试连接'}
+        </button>
+      </div>
+      {status === 'ok' && <p className="text-xs text-green-600">✅ 扩展已连接</p>}
+      {status === 'fail' && <p className="text-xs text-red-500">❌ 无法连接，请检查扩展 ID 和扩展是否已加载</p>}
+      <p className="text-[10px] text-muted-foreground">
+        打开 chrome://extensions/ → 找到 SmartLex Capture → 复制 ID → 粘贴到上方
+      </p>
     </div>
   );
 };

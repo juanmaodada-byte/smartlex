@@ -6,18 +6,15 @@ import KnowledgeLibrary from './components/Library';
 import HistoryList from './components/History';
 import ChatSidebar from './components/ChatSidebar';
 import Settings from './components/Settings';
+import Inbox from './components/Inbox';
+import ReviewPanel from './components/ReviewPanel';
 import { analyzeTerm, getActiveProviderName } from './aiService';
 import { useToast } from './contexts/ToastContext';
 import { useStore } from './contexts/StoreContext';
-import { getActiveProvider, hasActiveApiKey } from './services/apiConfig';
-
-export enum View {
-  HOME,
-  HISTORY,
-  LIBRARY,
-  SETTINGS,
-  ANALYSIS_RESULT
-}
+import { getActiveProvider, hasActiveApiKey, getApiKey } from './services/apiConfig';
+import { extensionBridge } from './services/extensionBridge';
+import { storageService } from './services/storageService';
+import { View } from './types';
 
 const App: React.FC = () => {
   const { showToast } = useToast();
@@ -27,7 +24,8 @@ const App: React.FC = () => {
     customFileName,
     linkCustomFile,
     currentAnalysis,
-    history
+    history,
+    addToInbox,
   } = useStore();
 
   const [currentView, setCurrentView] = useState<View>(View.HOME);
@@ -38,6 +36,29 @@ const App: React.FC = () => {
   const [activeProviderName, setActiveProviderName] = useState(getActiveProviderName());
   const [hasKey, setHasKey] = useState(hasActiveApiKey());
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [workspaceLabel, setWorkspaceLabel] = useState(storageService.getWorkspaceLabel());
+  const isTauri = !!(window as any).__TAURI_INTERNALS__;
+
+  const handleSyncClick = useCallback(async () => {
+    if (isTauri) {
+      // Tauri: create cloud workspace in OneDrive (no file picker needed)
+      try {
+        const { invoke } = await import('@tauri-apps/api/core');
+        const path: string = await invoke('create_cloud_workspace');
+        storageService.cloudWorkspacePath = path;
+        setWorkspaceLabel('workspace.lex');
+        showToast('☁️ 云同步工作区已就绪', 'success');
+        // Trigger save to new cloud path
+        linkCustomFile();
+      } catch (err) {
+        console.error('Failed to create cloud workspace:', err);
+        showToast('创建云工作区失败，请检查 OneDrive 是否已安装', 'error');
+      }
+    } else {
+      // Browser: use File System Access API
+      linkCustomFile();
+    }
+  }, [isTauri, linkCustomFile, showToast]);
 
   const [breadcrumbInfo, setBreadcrumbInfo] = useState({ label: '历史记录', view: View.HISTORY });
 
@@ -65,6 +86,70 @@ const App: React.FC = () => {
     }
   }, []);
 
+  // Keep workspace label in sync (updates when StoreContext sets customFileName)
+  useEffect(() => {
+    const label = customFileName || storageService.getWorkspaceLabel();
+    setWorkspaceLabel(label);
+  }, [customFileName]);
+
+  // 监听 Tauri 本地桥接：Chrome 扩展直接推送捕获词条
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    const seenIds = new Set<string>(); // dedup in-memory
+
+    const setup = async () => {
+      if (!(window as any).__TAURI_INTERNALS__) return;
+      try {
+        const { listen } = await import('@tauri-apps/api/event');
+        unlisten = await listen<string>('inbox-captured', (event) => {
+          try {
+            const entry = JSON.parse(event.payload);
+            // Dedup: skip if already received (race condition guard)
+            if (seenIds.has(entry.id)) return;
+            seenIds.add(entry.id);
+            addToInbox(entry);
+            showToast(`📥 ${entry.term} 已捕获`, 'success');
+          } catch (err) {
+            console.error('[SmartLex] Failed to parse bridge capture:', err);
+          }
+        });
+        console.log('[SmartLex] Bridge listener active');
+      } catch (err) {
+        console.warn('[SmartLex] Bridge listener setup failed:', err);
+      }
+    };
+
+    setup();
+    return () => { if (unlisten) unlisten(); };
+  }, [addToInbox, showToast]);
+
+  // Push API config to Tauri bridge so extension can fetch it
+  useEffect(() => {
+    if (!isTauri) return;
+    const push = async () => {
+      const provider = getActiveProvider();
+      const apiKeys: Record<string, string> = {};
+      for (const pid of ['glm', 'deepseek', 'doubao'] as const) {
+        const key = getApiKey(pid);
+        if (key) apiKeys[pid] = key;
+      }
+      const config = JSON.stringify({ provider, keys: apiKeys });
+      try {
+        const { invoke } = await import('@tauri-apps/api/core');
+        await invoke('push_api_config', { json: config });
+      } catch (err) {
+        console.warn('[SmartLex] Failed to push API config to bridge:', err);
+      }
+    };
+    push();
+    window.addEventListener('smartlex:provider-changed', push);
+    window.addEventListener('smartlex:api-key-changed', push);
+    return () => {
+      window.removeEventListener('smartlex:provider-changed', push);
+      window.removeEventListener('smartlex:api-key-changed', push);
+    };
+  }, [isTauri]);
+
   // 监听 provider / key 变化
   useEffect(() => {
     const refresh = () => {
@@ -78,6 +163,30 @@ const App: React.FC = () => {
       window.removeEventListener('smartlex:provider-changed', refresh);
       window.removeEventListener('smartlex:api-key-changed', refresh);
       window.removeEventListener('storage', refresh);
+    };
+  }, []);
+
+  // F0：将 Web App 的 API 配置同步到 Chrome 扩展（即时释义依赖）
+  useEffect(() => {
+    const syncApiConfig = () => {
+      const provider = getActiveProvider();
+      const apiKeys: Record<string, string> = {};
+      for (const pid of ['glm', 'deepseek', 'doubao'] as const) {
+        const key = getApiKey(pid);
+        if (key) apiKeys[pid] = key;
+      }
+      extensionBridge.pushApiConfig(provider, apiKeys);
+    };
+
+    // 启动时同步一次
+    syncApiConfig();
+
+    // 配置变更时实时同步
+    window.addEventListener('smartlex:provider-changed', syncApiConfig);
+    window.addEventListener('smartlex:api-key-changed', syncApiConfig);
+    return () => {
+      window.removeEventListener('smartlex:provider-changed', syncApiConfig);
+      window.removeEventListener('smartlex:api-key-changed', syncApiConfig);
     };
   }, []);
 
@@ -194,13 +303,33 @@ const App: React.FC = () => {
 
             {/* 文件同步指示器 */}
             <div
-              className="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-lg hover:bg-warm-100 dark:hover:bg-warm-800 transition-colors cursor-pointer"
-              onClick={linkCustomFile}
-              title="同步状态"
+              className="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-lg hover:bg-warm-100 dark:hover:bg-warm-800 transition-colors cursor-pointer group"
+              onClick={handleSyncClick}
+              title={
+                workspaceLabel
+                  ? `同步状态: ${workspaceLabel}${storageService.cloudWorkspacePath ? ' (云同步)' : ''}`
+                  : isTauri
+                    ? '点击在 OneDrive 创建 SmartLex 工作区，实现跨设备同步'
+                    : '点击选择 .lex 工作区文件（可放 OneDrive 实现跨端同步）'
+              }
             >
-              <span className={`size-2 rounded-full ring-2 ring-offset-1 transition-colors ${customFileName ? 'bg-success-500 ring-success-500/20' : 'bg-warm-300 ring-warm-300/20'}`} />
-              <span className="text-xs font-medium text-warm-500 dark:text-warm-400 truncate max-w-[140px]">
-                {customFileName ? customFileName : '未同步'}
+              {/* 状态圆点 */}
+              {workspaceLabel ? (
+                <span className="size-2 rounded-full bg-success-500 ring-2 ring-success-500/20 shrink-0" />
+              ) : (
+                <span className="size-2 rounded-full bg-amber-400 ring-2 ring-amber-400/20 animate-pulse shrink-0" />
+              )}
+              {/* 标签 */}
+              <span className="text-xs font-medium text-warm-500 dark:text-warm-400 truncate max-w-[160px]">
+                {workspaceLabel
+                  ? (storageService.cloudWorkspacePath ? '☁️ ' : '📁 ') + workspaceLabel
+                  : isTauri
+                    ? '☁️ 开启云同步'
+                    : '点击同步...'}
+              </span>
+              {/* 箭头提示 */}
+              <span className="material-symbols-outlined text-[14px] text-warm-300 dark:text-warm-600 group-hover:text-warm-500 transition-colors">
+                chevron_right
               </span>
             </div>
           </div>
@@ -248,6 +377,12 @@ const App: React.FC = () => {
               onSelectItem={(item) => navigateToAnalysis(item, View.LIBRARY)}
               onOpenHistory={() => setCurrentView(View.HISTORY)}
             />
+          )}
+          {currentView === View.INBOX && (
+            <Inbox />
+          )}
+          {currentView === View.REVIEW && (
+            <ReviewPanel />
           )}
           {currentView === View.SETTINGS && (
             <Settings />

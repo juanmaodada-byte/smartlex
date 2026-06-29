@@ -1,4 +1,7 @@
 import React from 'react';
+import { View } from '../types';
+import { useStore } from '../contexts/StoreContext';
+import { getDueCards } from '../services/spacedRepetition';
 
 interface SidebarProps {
   currentView: number;
@@ -7,20 +10,18 @@ interface SidebarProps {
   onToggleCollapse: () => void;
 }
 
-enum View {
-  HOME = 0,
-  HISTORY = 1,
-  LIBRARY = 2,
-  SETTINGS = 3,
-}
-
-const menuItems = [
-  { id: View.HOME, icon: 'home', label: '首页' },
-  { id: View.LIBRARY, icon: 'menu_book', label: '知识库' },
-  { id: View.HISTORY, icon: 'history', label: '历史' },
-];
-
 const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, collapsed, onToggleCollapse }) => {
+  const { reviewQueue } = useStore();
+  const dueCount = getDueCards(reviewQueue).length;
+
+  const menuItems = [
+    { id: View.HOME, icon: 'home', label: '首页' },
+    { id: View.INBOX, icon: 'inbox', label: 'Inbox' },
+    { id: View.REVIEW, icon: 'school', label: '复习', badge: dueCount },
+    { id: View.LIBRARY, icon: 'menu_book', label: '知识库' },
+    { id: View.HISTORY, icon: 'history', label: '历史' },
+  ];
+
   return (
     <aside
       className={`flex flex-col bg-bg-surface dark:bg-warm-900 border-r border-warm-200/60 dark:border-warm-800/60 shrink-0 transition-all duration-300 z-30 ${collapsed ? 'w-[60px]' : 'w-[220px]'}`}
@@ -57,6 +58,11 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, collapsed, onTo
               </span>
               {!collapsed && (
                 <span className="truncate">{item.label}</span>
+              )}
+              {item.badge && item.badge > 0 && (
+                <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-accent-500 text-white min-w-[18px] text-center">
+                  {item.badge > 99 ? '∞' : item.badge}
+                </span>
               )}
             </button>
           );

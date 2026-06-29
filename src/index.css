@@ -512,3 +512,35 @@
   #analysis-report { padding: 0 !important; }
   section { page-break-inside: avoid; }
 }
+
+/* ── 进度条动画 ── */
+@keyframes sl-shimmer {
+  0%   { left: -40%; }
+  100% { left: 100%; }
+}
+@keyframes sl-stripes {
+  0%   { background-position: 0 0; }
+  100% { background-position: 40px 0; }
+}
+/* ── 复习卡片 3D 翻转 ── */
+.perspective-1000 { perspective: 1000px; }
+.transform-style-3d { transform-style: preserve-3d; }
+.backface-hidden { backface-visibility: hidden; }
+.rotate-y-180 { transform: rotateY(180deg); }
+
+.sl-progress-striped {
+  background-image: linear-gradient(
+    45deg,
+    rgba(255,255,255,0.15) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255,255,255,0.15) 50%,
+    rgba(255,255,255,0.15) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 40px 40px;
+  animation: sl-stripes 1s linear infinite;
+}
+
+

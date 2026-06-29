@@ -3,6 +3,9 @@ import { SemanticAnalysis } from '../types';
 import { useToast } from '../contexts/ToastContext';
 import { useStore } from '../contexts/StoreContext';
 import { storageService } from '../services/storageService';
+import { exportAnkiCSV, exportEnhancedJSON } from '../services/exportService';
+import { exportCardImage } from '../services/imageExporter';
+import TimelineView from './TimelineView';
 
 interface KnowledgeLibraryProps {
   onSelectItem: (item: SemanticAnalysis) => void;
@@ -27,24 +30,47 @@ const KnowledgeLibrary: React.FC<KnowledgeLibraryProps> = ({
   const { showToast } = useToast();
 
   const [filter, setFilter] = useState('All');
+  const [posFilter, setPosFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'cards' | 'timeline'>('cards');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isManagingTags, setIsManagingTags] = useState<string | null>(null);
   const [newTagInput, setNewTagInput] = useState('');
 
-  // Extract all unique tags
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  };
+
+  // 所有标签
   const allTags = useMemo(() => {
     const tags = new Set<string>();
     library.forEach(item => item.tags.forEach(t => tags.add(t)));
     return Array.from(tags).sort();
   }, [library]);
 
+  // 所有词性
+  const allPOS = useMemo(() => {
+    const pos = new Set<string>();
+    library.forEach(item => { if (item.partOfSpeech) pos.add(item.partOfSpeech); });
+    return Array.from(pos).sort();
+  }, [library]);
+
   const filteredItems = library.filter(item => {
-    const matchesSearch = item.term.toLowerCase().includes(search.toLowerCase()) ||
-      item.semanticCore.en.toLowerCase().includes(search.toLowerCase());
+    const q = search.toLowerCase().trim();
+    const matchesSearch = !q ||
+      item.term.toLowerCase().includes(q) ||
+      item.semanticCore.en.toLowerCase().includes(q) ||
+      item.semanticCore.cn.toLowerCase().includes(q) ||
+      (item.context || '').toLowerCase().includes(q) ||
+      item.originStory.toLowerCase().includes(q) ||
+      item.partOfSpeech.toLowerCase().includes(q) ||
+      item.tags.some(t => t.toLowerCase().includes(q)) ||
+      item.usageExamples.some(ex => ex.en.toLowerCase().includes(q) || ex.cn.toLowerCase().includes(q));
     const matchesFilter = filter === 'All' || item.type === filter;
+    const matchesPOS = posFilter === 'All' || item.partOfSpeech === posFilter;
     const matchesTag = !selectedTag || item.tags.includes(selectedTag);
-    return matchesSearch && matchesFilter && matchesTag;
+    return matchesSearch && matchesFilter && matchesPOS && matchesTag;
   });
 
   const handleDeleteItem = (e: React.MouseEvent, id: string) => {
@@ -106,20 +132,40 @@ const KnowledgeLibrary: React.FC<KnowledgeLibraryProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button onClick={onExport} className="btn btn-ghost text-xs gap-1.5">
-              <span className="material-symbols-outlined text-sm">download</span>
-              导出备份
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* 视图切换 */}
+            <div className="flex rounded-lg border border-border overflow-hidden">
+              <button onClick={() => setViewMode('cards')}
+                className={`px-2.5 py-1 text-[10px] font-semibold ${viewMode === 'cards' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>卡片</button>
+              <button onClick={() => setViewMode('timeline')}
+                className={`px-2.5 py-1 text-[10px] font-semibold ${viewMode === 'timeline' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>时间线</button>
+            </div>
+
+            {/* 导出 */}
+            <button onClick={() => { exportAnkiCSV(library); showToast('Anki CSV 已下载', 'success'); }}
+              className="btn btn-ghost text-xs gap-1.5" title="导出 Anki CSV">
+              <span className="material-symbols-outlined text-sm">table</span> Anki
             </button>
-            <button
-              onClick={linkCustomFile}
-              className={`btn text-xs gap-1.5 ${
-                customFileName ? 'btn-success' : 'btn-secondary'
-              }`}
-            >
-              <span className="material-symbols-outlined text-sm">
-                {customFileName ? 'cloud_done' : 'link'}
-              </span>
+            <button onClick={() => { exportEnhancedJSON(library); showToast('JSON 已下载', 'success'); }}
+              className="btn btn-ghost text-xs gap-1.5" title="导出增强 JSON">
+              <span className="material-symbols-outlined text-sm">data_object</span> JSON
+            </button>
+            <button onClick={() => {
+                const items = selectedIds.size > 0 ? library.filter(i => selectedIds.has(i.id)) : library;
+                items.forEach(item => exportCardImage(item));
+                showToast(`已导出 ${items.length} 张卡片`, 'success');
+                setSelectedIds(new Set());
+              }}
+              className="btn btn-ghost text-xs gap-1.5" title={selectedIds.size > 0 ? '导出选中卡片' : '导出全部卡片'}>
+              <span className="material-symbols-outlined text-sm">image</span>
+              卡片{selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}
+            </button>
+            <button onClick={onExport} className="btn btn-ghost text-xs gap-1.5" title="导出 .lex 备份">
+              <span className="material-symbols-outlined text-sm">download</span> 备份
+            </button>
+            <button onClick={linkCustomFile}
+              className={`btn text-xs gap-1.5 ${customFileName ? 'btn-success' : 'btn-secondary'}`}>
+              <span className="material-symbols-outlined text-sm">{customFileName ? 'cloud_done' : 'link'}</span>
               {customFileName ? '已链接' : '选择路径'}
             </button>
           </div>
@@ -137,7 +183,7 @@ const KnowledgeLibrary: React.FC<KnowledgeLibraryProps> = ({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="input pl-10 pr-4 text-sm"
-                placeholder="搜索知识库..."
+                placeholder="搜索词、释义、上下文、例句…"
                 type="text"
               />
             </div>
@@ -198,7 +244,9 @@ const KnowledgeLibrary: React.FC<KnowledgeLibraryProps> = ({
         className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-8 bg-dot-pattern"
         id="library-content"
       >
-        {filteredItems.length === 0 ? (
+        {viewMode === 'timeline' && filteredItems.length > 0 ? (
+          <TimelineView items={filteredItems} onSelect={onSelectItem} />
+        ) : filteredItems.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-muted-foreground/25 gap-4">
             <span className="material-symbols-outlined text-8xl">inventory_2</span>
             <div className="text-center">
@@ -217,9 +265,17 @@ const KnowledgeLibrary: React.FC<KnowledgeLibraryProps> = ({
           <div className="columns-1 sm:columns-2 lg:columns-3 gap-5 space-y-5">
             {filteredItems.map(item => (
               <div key={item.id} className="break-inside-avoid group relative">
+                {/* 选择复选框 — hover 时显示 */}
+                <div className={`absolute top-3 left-3 z-10 transition-opacity ${selectedIds.has(item.id) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                  <input type="checkbox"
+                    checked={selectedIds.has(item.id)}
+                    onChange={(e) => { e.stopPropagation(); toggleSelect(item.id); }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-indigo-500 focus:ring-indigo-400 cursor-pointer" />
+                </div>
                 {/* Card */}
                 <div
-                  className="card depth-1 hover:depth-2 transition-all duration-200 flex flex-col cursor-pointer"
+                  className={`card depth-1 hover:depth-2 transition-all duration-200 flex flex-col cursor-pointer ${selectedIds.has(item.id) ? 'ring-2 ring-primary/50' : ''}`}
                   onClick={() => onSelectItem(item)}
                 >
                   {/* Top row: type badge + actions */}

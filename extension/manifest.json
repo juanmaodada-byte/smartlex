@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmxN/PNv1Qbn8FC3VEOcahas1Yf2wvLHLha84U54e1U9DCR5PxsHbVz0JJRIQ+vNblksQDxlIsP8W1tCkTkXFcSAyy4BFAMzpYnjANDzSq5xDf/LmyE+crX7CCNMGVOQtRyu+YaPiRqHkB/mCxhO3BJiG7JolYtJJxVug4YkWlXI+hFra22avLh7uJiWwKDnrJscLP0t+i5cr6W8oICel9P5gQXd78QstojEslNoYlSmf3+w+RvqYoiZdr+CEPAbBp290ZEeP+sl+9YcBOGSzDuG2qEoviQcmckdmpznF2ofLnvuuqhVs/yIziXlHiB2QG9rlOeW9j0V1OzeynEKzQwIDAQAB",
+  "name": "SmartLex Capture",
+  "version": "0.2.0",
+  "description": "阅读时不打断心流的语言资产收集工具 — 划词即时释义 + 一键收藏",
+  "permissions": ["storage", "activeTab", "contextMenus", "alarms"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "exclude_matches": ["http://localhost:*/*", "https://localhost:*/*", "*://tauri:*/*"],
+      "js": ["content/content.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "content/popup/popup.html",
+    "default_title": "SmartLex Capture",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "commands": {
+    "capture-selection": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S"
+      },
+      "description": "捕获当前选中文本到 SmartLex"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "externally_connectable": {
+    "matches": ["http://localhost:*/*", "https://localhost:*/*"]
+  }
+}
