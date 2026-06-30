@@ -47,6 +47,9 @@ extension/key.pub
 # WorkBuddy
 .workbuddy/
 
+# AI Studio / external agents
+.agent/
+
 # Project docs (local only)
 doc/
 
